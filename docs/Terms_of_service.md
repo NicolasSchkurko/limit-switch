@@ -1,14 +1,14 @@
-# Terms of Service for Form Limiter
-**Last Updated:** September 29, 2025
+# Terms of Service for Limit-Switch
+**Last Updated:** October 2026
 
-Please read these Terms of Service ("Terms") carefully before using the Form Limiter Google Forms add-on (the "Service") operated by NicolasSchkurko ("us", "we", or "our").
+Please read these Terms of Service ("Terms") carefully before using the Limit-Switch Google Forms add-on (the "Service") operated by NicolasSchkurko ("us", "we", or "our").
 
 Your access to and use of the Service is conditioned on your acceptance of and compliance with these Terms. These Terms apply to all users who access or use the Service.
 
 By accessing or using the Service you agree to be bound by these Terms. If you disagree with any part of the terms then you may not access the Service.
 
 ### 1. Description of Service
-Form Limiter is a Google Forms add-on that allows users to set a maximum number of responses for a form. Once the limit is reached, the Service will automatically stop the form from accepting new responses.
+Limit-Switch is a Google Forms add-on that allows users to set a maximum number of responses for a form. Once the limit is reached, the Service will automatically stop the form from accepting new responses.
 
 ### 2. License
 The Service is free software, licensed under the **GNU General Public License v3.0**. You are free to use, modify, and distribute it under the terms of that license.

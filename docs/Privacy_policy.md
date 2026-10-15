@@ -1,7 +1,7 @@
-# Privacy Policy for Form Limiter
-**Last Updated:** September 29, 2025
+# Privacy Policy for Limit-Switch
+**Last Updated:** October 2026
 
-This Privacy Policy describes how Form Limiter ("we," "us," or "our") handles information in connection with the Form Limiter Google Forms add-on (the "Service"). Our commitment is to protect your privacy and handle any data with transparency.
+This Privacy Policy describes how Limit-Switch ("we," "us," or "our") handles information in connection with the Limit-Switch Google Forms add-on (the "Service"). Our commitment is to protect your privacy and handle any data with transparency.
 
 ### 1. Information We Do Not Collect
 We believe in minimal data collection. The Service **does not** collect, store, or transmit any personal identifying information about you or your form respondents. This includes, but is not limited to:
@@ -15,7 +15,7 @@ To function, the Service requires access to certain metadata about your Google F
 - **Form Properties:** The Service needs to read and modify the form's settings, such as the confirmation message, the closed-form message, and whether the form is accepting responses.
 
 ### 3. Information We Store
-The Service stores only the configuration settings you provide directly within the add-on's interface. This data is stored using Google's built-in `PropertiesService`, which associates the data with the script project bound to your form. This data includes:
+The Service stores only the configuration settings you provide directly within the add-on's interface. This data is stored using Google's built-in `PropertiesService` (`DocumentProperties`), scoped to the specific Google Form where the add-on is installed. This data includes:
 - The maximum number of responses you set (the "limit").
 
 This information is stored solely for the functioning of the add-on and is not shared with any third parties.
