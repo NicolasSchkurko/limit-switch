@@ -6,7 +6,7 @@ var formProperties = PropertiesService.getDocumentProperties();
  */
 function onOpen(e) {
   FormApp.getUi()
-    .createMenu('Form Limiter')
+    .createMenu('Limit-Switch')
     .addItem('⚙️ Configure Limiter', 'showLimitDialog')
     .addToUi();
 }
