@@ -1,4 +1,4 @@
-var scriptProperties = PropertiesService.getScriptProperties();
+var formProperties = PropertiesService.getDocumentProperties();
 
 /**
  * Checks if the response limit has been reached every time the form is submitted.
@@ -15,7 +15,7 @@ function checkResponseLimit(e) {
       return;
     }
 
-    var maxResponses = parseInt(scriptProperties.getProperty('maxResponses') || '0', 10);
+    var maxResponses = parseInt(formProperties.getProperty('maxResponses') || '0', 10);
     if (maxResponses <= 0) return;
 
     var currentResponseCount = form.getResponses().length;
