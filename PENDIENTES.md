@@ -1,5 +1,7 @@
 # Pendientes técnicos de Limit-Switch
 
+> English version: [PENDING.md](PENDING.md)
+
 Registro de los puntos abiertos del proyecto, ordenados de más urgente a menos urgente. Cada punto indica estado, severidad, archivos afectados y una propuesta concreta. Los IDs son estables y no se renumeran; los puntos resueltos pasan a la sección [Corregidos](#corregidos) con su fecha y el motivo del cambio.
 
 | # | Punto | Por qué está acá |
