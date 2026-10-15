@@ -1,4 +1,4 @@
-var scriptProperties = PropertiesService.getScriptProperties();
+var formProperties = PropertiesService.getDocumentProperties();
 
 /**
  * Sets the maximum number of allowed responses.
@@ -13,7 +13,7 @@ function setMaxResponses(limit) {
     var limitNumber = parseInt(limit, 10);
 
     if (!isNaN(limitNumber) && limitNumber > 0) {
-      scriptProperties.setProperty('maxResponses', limitNumber.toString());
+      formProperties.setProperty('maxResponses', limitNumber.toString());
       setTrigger();
       return 'Limit set to ' + limitNumber + ' responses.';
     }
@@ -44,7 +44,7 @@ function setConfirmationMessage(message) {
 
   try {
 
-    if (messageIsEmtpy(message)) {
+    if (messageIsEmpty(message)) {
       throw new Error('Confirmation message cannot be empty.');
     }
 
@@ -72,7 +72,7 @@ function setClosedMessage(message) {
   lock.waitLock(30000);
 
   try {
-    if (messageIsEmtpy(message)) {
+    if (messageIsEmpty(message)) {
       throw new Error('Closed form message cannot be empty.');
     }
     var form = FormApp.getActiveForm();
@@ -103,7 +103,6 @@ function setClosedMessage(message) {
  * @param {string} message The evaluated message.
  * @returns {boolean} The validation.
  */
-function messageIsEmtpy(message){
+function messageIsEmpty(message){
  return !message || message.trim() === ''
 }
-

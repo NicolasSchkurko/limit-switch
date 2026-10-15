@@ -10,8 +10,8 @@
   ],
   "addOns": {
     "common": {
-      "name": "Form Limiter",
-      "logoUrl": "https://github.com/NicolasSchkurko/Form-Limiter/blob/main/misc/LimiterIcon.jpg?raw=true",
+      "name": "Limit-Switch",
+      "logoUrl": "https://github.com/NicolasSchkurko/limit-switch/blob/main/misc/LimiterIcon.jpg?raw=true",
       "useLocaleFromApp": true
     }
   }
