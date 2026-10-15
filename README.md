@@ -44,6 +44,8 @@ Before deploying a change, verify:
 2. Submit once more: the extra response is deleted.
 3. Open a second form with the add-on: its limit and messages are independent from the first one.
 
+Open items and pending decisions are tracked in [PENDIENTES.md](PENDIENTES.md).
+
 ### Legal
 - [Privacy Policy](docs/Privacy_policy.md)
 - [Terms of Service](docs/Terms_of_service.md)
