@@ -30,13 +30,14 @@
       text-align: center;
       color: #2c3e50;
       margin-top: 0;
-      font-size: clamp(1.25rem, 5vw, 1.6rem);
+      margin-bottom: 0.5rem;
+      font-size: clamp(1.25rem, 5vw, 1.5rem);
     }
     .logo-png {
       display: block;
-      margin: 0 auto 0; 
-      width: 6rem;         
-      height: 6rem;
+      margin: 0 auto 0.5rem; 
+      width: 5rem;         
+      height: 5rem;
       object-fit: contain; 
     }
     .info-bar { 
@@ -46,8 +47,30 @@
       background-color: #f1f3f5;
       padding: 0.6rem 0.85rem;
       border-radius: 0.375rem;
-      margin-bottom: 1.25rem;
+      margin-bottom: 1rem;
       font-size: 0.9rem;
+    }
+    .info-left {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 0.2rem 0.55rem;
+      border-radius: 1rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    .badge-open {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    .badge-closed {
+      background-color: #f8d7da;
+      color: #721c24;
     }
     .btn-sync {
       width: auto;
@@ -75,20 +98,20 @@
       background-color: #5a6268;
     }
     label {
-      font-size: 1rem;
+      font-size: 0.95rem;
       font-weight: 600;
-      margin-top: 1.25rem;
-      margin-bottom: 0.5rem;
+      margin-top: 1rem;
+      margin-bottom: 0.35rem;
       display: block;
       color: #34495e;
     }
     input[type="number"], input[type="text"] {
       width: 100%;
-      padding: 0.75rem;
-      margin-bottom: 0.5rem;
+      padding: 0.65rem 0.75rem;
+      margin-bottom: 0.35rem;
       border: 1px solid #bdc3c7;
       border-radius: 0.375rem;
-      font-size: 1rem;
+      font-size: 0.95rem;
       transition: border-color 0.2s, box-shadow 0.2s;
     }
     input:focus {
@@ -99,15 +122,15 @@
     button {
       background-color: #007bff;
       color: white;
-      padding: 0.75rem 1.25rem;
+      padding: 0.65rem 1.25rem;
       border: none;
       border-radius: 0.375rem;
       cursor: pointer;
-      font-size: 1rem;
+      font-size: 0.95rem;
       font-weight: 600;
       transition: background-color 0.2s, opacity 0.2s;
       width: 100%;
-      margin-top: 0.5rem; 
+      margin-top: 0.35rem; 
     }
     button:hover { background-color: #0056b3; }
     button:disabled {
@@ -116,9 +139,9 @@
       opacity: 0.7;
     }
     p {
-      margin: 0.3rem 0;
+      margin: 0.25rem 0;
       color: #7f8c8d;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
     }
     .current-value {
       font-weight: 600;
@@ -128,10 +151,11 @@
       text-align: center;
       font-weight: bold;
       min-height: 1.5rem;
-      margin-bottom: 1rem;
+      margin-bottom: 0.75rem;
+      font-size: 0.9rem;
     }
 
-    /* Estilos del modal */
+    /* Modal dialog */
     .modal-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background-color: rgba(0, 0, 0, 0.5);
@@ -155,21 +179,24 @@
   <div class="container">
     <h2>Limit-Switch</h2>
 
-    <img class="logo-png" src="https://raw.githubusercontent.com/NicolasSchkurko/limit-switch/refs/heads/main/misc/LimiterUiLogo.png" alt="Logo">
+    <!-- Inlined base64 logo: offline-ready and CSP-compliant -->
+    <img class="logo-png" src="data:image/png;base64,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" alt="Limit-Switch Logo">
 
     <div class="info-bar">
-      <span>
-        <strong>Current responses:</strong> 
-        <span class="current-value" id="currentResponseCount"><?= currentResponses ?></span>
-      </span>
-      <button id="syncBtn" class="btn-sync" onclick="syncCount()" title="Recalibrate response count from Google Forms">🔄 Sync</button>
+      <div class="info-left">
+        <span><strong>Responses:</strong> <span class="current-value" id="currentResponseCount"><?= currentResponses ?></span></span>
+        <span id="formStatusBadge" class="status-badge <?= isAccepting ? 'badge-open' : 'badge-closed' ?>">
+          <?= isAccepting ? '● Open' : '● Closed' ?>
+        </span>
+      </div>
+      <button id="syncBtn" class="btn-sync" onclick="syncCount()" title="Recalibrate response count and status from Google Forms">🔄 Sync</button>
     </div>
 
     <div id="status"></div>
 
     <div>
       <label for="limit">Set Response Limit:</label>
-      <input type="number" id="limit" min="1" placeholder="Leave empty to remove" value="<?= maxResponses === 'Not set' ? '' : maxResponses ?>">
+      <input type="number" id="limit" min="1" placeholder="Leave empty to remove" value="<?= maxResponses === 'Not set' ? '' : maxResponses ?>" onkeydown="if(event.key === 'Enter') setLimit()">
       <div class="btn-group">
         <button onclick="setLimit()">Save Limit</button>
         <button type="button" class="btn-secondary" onclick="disableLimit()">Remove Limit</button>
@@ -179,14 +206,14 @@
     
     <div>
       <label for="confirmationMessage">Confirmation Message:</label>
-      <input type="text" id="confirmationMessage" value="<?= confirmationMessage ?>">
+      <input type="text" id="confirmationMessage" value="<?= confirmationMessage ?>" onkeydown="if(event.key === 'Enter') setMessage()">
       <button onclick="setMessage()">Update Confirmation</button>
       <p><strong>Current:</strong> <span class="current-value" id="currentConfirmationMessage"><?= confirmationMessage ?></span></p>
     </div>
 
     <div>
       <label for="closedMessage">Message when form is closed:</label>
-      <input type="text" id="closedMessage" value="<?= closedMessage ?>">
+      <input type="text" id="closedMessage" value="<?= closedMessage ?>" onkeydown="if(event.key === 'Enter') setClosedMessage()">
       <button onclick="setClosedMessage()">Update Closed Message</button>
       <p><strong>Current:</strong> <span class="current-value" id="currentClosedMessage"><?= closedMessage ?></span></p>
     </div>
@@ -201,17 +228,30 @@
   </div>
 
   <script>
+    function updateStatusBadge(isAccepting) {
+      var badge = document.getElementById("formStatusBadge");
+      if (!badge) return;
+      if (isAccepting) {
+        badge.className = "status-badge badge-open";
+        badge.textContent = "● Open";
+      } else {
+        badge.className = "status-badge badge-closed";
+        badge.textContent = "● Closed";
+      }
+    }
+
     function handleSuccess(msg, callback) {
       var statusDiv = document.getElementById("status");
       statusDiv.style.color = 'green';
       statusDiv.textContent = msg;
       if (callback) callback();
       setButtonsDisabled(false);
-      setTimeout(function() { statusDiv.textContent = ''; }, 3000);
+      setTimeout(function() { statusDiv.textContent = ''; }, 3500);
     }
 
     function handleFailure(error) {
-      document.getElementById('errorMessage').textContent = error.message || 'An unexpected error occurred.';
+      var message = (typeof error === 'string') ? error : (error && error.message ? error.message : 'An unexpected error occurred.');
+      document.getElementById('errorMessage').textContent = message;
       document.getElementById('errorModal').style.display = 'flex';
       setButtonsDisabled(false);
     }
@@ -231,10 +271,16 @@
       setButtonsDisabled(true);
       syncBtn.textContent = "Syncing...";
       google.script.run
-        .withSuccessHandler(function(count) {
-          document.getElementById("currentResponseCount").textContent = count;
+        .withSuccessHandler(function(res) {
           syncBtn.textContent = "🔄 Sync";
-          handleSuccess("Responses synced: " + count);
+          if (res && typeof res === 'object') {
+            document.getElementById("currentResponseCount").textContent = res.count;
+            updateStatusBadge(res.isAccepting);
+            handleSuccess("Responses synced: " + res.count);
+          } else {
+            document.getElementById("currentResponseCount").textContent = res;
+            handleSuccess("Responses synced: " + res);
+          }
         })
         .withFailureHandler(function(err) {
           syncBtn.textContent = "🔄 Sync";
@@ -244,25 +290,44 @@
     }
 
     function setLimit() {
-      var limit = document.getElementById("limit").value.trim();
+      var limitInput = document.getElementById("limit");
+      var limitVal = limitInput.value.trim();
+
+      // Client-side validation: prevent negative or invalid numbers before network call
+      if (limitVal !== "") {
+        var num = parseInt(limitVal, 10);
+        if (isNaN(num) || num <= 0) {
+          handleFailure("Please enter a valid number greater than zero, or leave empty to remove the limit.");
+          return;
+        }
+      }
+
       setButtonsDisabled(true);
       google.script.run
-        .withSuccessHandler(function(msg) {
+        .withSuccessHandler(function(res) {
+          var msg = (typeof res === 'object' && res.message) ? res.message : res;
+          if (typeof res === 'object' && typeof res.isAccepting === 'boolean') {
+            updateStatusBadge(res.isAccepting);
+          }
           handleSuccess(msg, function() {
-            document.getElementById("currentLimit").textContent = limit ? limit : "Not set";
-            if (!limit) {
-              document.getElementById("limit").value = "";
+            document.getElementById("currentLimit").textContent = limitVal ? limitVal : "Not set";
+            if (!limitVal) {
+              limitInput.value = "";
             }
           });
         })
         .withFailureHandler(handleFailure)
-        .setMaxResponses(limit);
+        .setMaxResponses(limitVal);
     }
 
     function disableLimit() {
       setButtonsDisabled(true);
       google.script.run
-        .withSuccessHandler(function(msg) {
+        .withSuccessHandler(function(res) {
+          var msg = (typeof res === 'object' && res.message) ? res.message : res;
+          if (typeof res === 'object' && typeof res.isAccepting === 'boolean') {
+            updateStatusBadge(res.isAccepting);
+          }
           handleSuccess(msg, function() {
             document.getElementById("limit").value = "";
             document.getElementById("currentLimit").textContent = "Not set";
@@ -273,29 +338,53 @@
     }
 
     function setMessage() {
+      var messageInput = document.getElementById("confirmationMessage");
+      var messageVal = messageInput.value.trim();
+
+      // Client-side validation
+      if (!messageVal) {
+        handleFailure("Confirmation message cannot be empty.");
+        return;
+      }
+
       setButtonsDisabled(true);
-      var message = document.getElementById("confirmationMessage").value;
       google.script.run
-        .withSuccessHandler(function(msg) {
+        .withSuccessHandler(function(res) {
+          var msg = (typeof res === 'object' && res.message) ? res.message : res;
+          if (typeof res === 'object' && typeof res.isAccepting === 'boolean') {
+            updateStatusBadge(res.isAccepting);
+          }
           handleSuccess(msg, function() {
-            document.getElementById("currentConfirmationMessage").textContent = message;
+            document.getElementById("currentConfirmationMessage").textContent = messageVal;
           });
         })
         .withFailureHandler(handleFailure)
-        .setConfirmationMessage(message);
+        .setConfirmationMessage(messageVal);
     }
 
     function setClosedMessage() {
+      var messageInput = document.getElementById("closedMessage");
+      var messageVal = messageInput.value.trim();
+
+      // Client-side validation
+      if (!messageVal) {
+        handleFailure("Closed form message cannot be empty.");
+        return;
+      }
+
       setButtonsDisabled(true);
-      var message = document.getElementById("closedMessage").value;
       google.script.run
-        .withSuccessHandler(function(msg) {
+        .withSuccessHandler(function(res) {
+          var msg = (typeof res === 'object' && res.message) ? res.message : res;
+          if (typeof res === 'object' && typeof res.isAccepting === 'boolean') {
+            updateStatusBadge(res.isAccepting);
+          }
           handleSuccess(msg, function() {
-            document.getElementById("currentClosedMessage").textContent = message;
+            document.getElementById("currentClosedMessage").textContent = messageVal;
           });
         })
         .withFailureHandler(handleFailure)
-        .setClosedMessage(message);
+        .setClosedMessage(messageVal);
     }
   </script>
 </body>

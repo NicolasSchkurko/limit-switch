@@ -27,13 +27,15 @@ function showLimitDialog() {
   var maxResponses = getProperties().getProperty('maxResponses') || "Not set";
   var confirmationMessage = form.getConfirmationMessage() || "Your response has been recorded.";
   var closedMessage = form.getCustomClosedFormMessage() || "This form is no longer accepting responses.";
+  var isAccepting = form.isAcceptingResponses();
 
   var template = HtmlService.createTemplateFromFile('index');
   template.maxResponses = maxResponses;
   template.currentResponses = currentResponseCount;
   template.confirmationMessage = confirmationMessage;
   template.closedMessage = closedMessage;
+  template.isAccepting = isAccepting;
 
   var ui = template.evaluate().setWidth(450).setHeight(580);
-  FormApp.getUi().showModalDialog(ui, 'Limiter Settings');
+  FormApp.getUi().showModalDialog(ui, 'Limit-Switch Settings');
 }

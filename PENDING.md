@@ -7,7 +7,6 @@ Log of open project items, ordered from highest to lowest criticality. Each item
 | # | Item | Severity | Why it is here |
 | --- | --- | --- | --- |
 | 12 | Define final brand assets for the listing | Medium | Existing assets belong to the "Limiter" stage; the Marketplace requires a 128×128 icon, banner, and screenshots |
-| 13 | Improve settings dialog UX/UI (`index.html`) | Low | Missing open/closed status badge, unified save workflow, client-side input validation, Enter key support, and offline logo |
 | 14 | Evaluate UI internationalization (i18n) | Low | UI is currently English-only; `useLocaleFromApp` is declared but there are no translations |
 | 15 | Define code testing strategy | Low | No automated tests exist; only the manual checklist in the README |
 | 16 | Create the v1.0.0 release | Low | No git tags or release notes exist; should be tagged once pending items are resolved |
@@ -23,27 +22,6 @@ Log of open project items, ordered from highest to lowest criticality. Each item
 **Severity:** medium
 
 The existing assets in `misc/` come from the earlier "Limiter" stage and contain no visible text, so they remain usable. For the public Marketplace listing, define the final asset bundle (128×128 icon, banner, and promotional screenshots) matching the current branding.
-
-## 13. Settings dialog UX/UI improvements
-
-**Status:** open  
-**Severity:** low  
-**Files:** `src/index.html`
-
-### What is happening
-
-1. **Invisible state:** The modal does not inform the user whether the form is currently open or closed (`isAcceptingResponses`).
-2. **Fragmented saving:** Three separate buttons without a unified save option or warnings about unsaved fields.
-3. **No keyboard handling:** Pressing `Enter` inside input fields does nothing.
-4. **Server-only validation:** No client-side pre-validation before invoking `google.script.run`.
-5. **External image dependency:** The logo points to `raw.githubusercontent.com`, which may fail under strict corporate firewalls or CSP rules.
-
-### Proposal
-
-1. Add a status badge indicating the form's current state (Open / Closed).
-2. Attach `Enter` key event listeners and client-side input validation.
-3. Embed the logo in base64 in `index.html` (~6 KB) to ensure offline functionality and CSP compliance.
-4. Design a unified save button or per-field feedback indicators.
 
 ## 14. UI internationalization (i18n)
 
@@ -128,6 +106,15 @@ Confirmed cost breakdown:
 ---
 
 ## Fixed
+
+### Settings dialog UX/UI improvements — fixed 2026-10-27
+
+`src/index.html`, `src/main.js`, `src/actions.js` (former item 13): Overhauled the configuration dialog with five key enhancements:
+1. **Visual status badge:** Added a dynamic badge (`● Open` in green / `● Closed` in red) displaying the form's live state (`isAcceptingResponses`) that updates reactively upon every save or sync.
+2. **Inlined Base64 logo:** Replaced the remote GitHub image URL with inlined base64 data, ensuring offline rendering and full CSP compliance.
+3. **Keyboard support (Enter):** Pressing `Enter` on any input field (`limit`, `confirmationMessage`, `closedMessage`) executes the respective save action.
+4. **Client-side validation:** Added pre-flight input validation (positive numbers for limits, non-empty text for messages) that immediately displays modal alerts without wasteful network round-trips.
+5. **Structured server responses:** Backend functions now return structured `{ message, isAccepting }` objects for fluid UI reactivity.
 
 ### Automated form lifecycle management upon limit adjustments — fixed 2026-10-27
 

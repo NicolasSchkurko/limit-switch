@@ -52,19 +52,23 @@ function withScriptLock(actionFn, timeoutMs) {
 
 /**
  * Internal helper to clear the max responses limit and remove the submission trigger.
- * @returns {string} A confirmation message.
+ * @returns {object} Result object with message and current form accepting status.
  */
 function clearLimitInternal() {
   getProperties().deleteProperty('maxResponses');
   deleteTrigger();
-  return 'Response limit removed successfully.';
+  var form = FormApp.getActiveForm();
+  return {
+    message: 'Response limit removed successfully.',
+    isAccepting: form.isAcceptingResponses()
+  };
 }
 
 /**
  * Sets the maximum number of allowed responses, or removes the limit if empty or zero.
  * Automatically synchronizes the form's open/closed state with available capacity.
  * @param {string} limit The maximum number of responses as a string.
- * @returns {string} A confirmation or error message.
+ * @returns {object} Result object with message and current form accepting status.
  */
 function setMaxResponses(limit) {
   return withScriptLock(function() {
@@ -89,18 +93,30 @@ function setMaxResponses(limit) {
       if (currentCount >= limitNumber) {
         if (isAccepting) {
           form.setAcceptingResponses(false);
-          return 'Limit set to ' + limitNumber + ' responses. Form is now closed (already has ' + currentCount + ' responses).';
+          return {
+            message: 'Limit set to ' + limitNumber + ' responses. Form is now closed (already has ' + currentCount + ' responses).',
+            isAccepting: false
+          };
         }
-        return 'Limit set to ' + limitNumber + ' responses. Form remains closed (limit reached).';
+        return {
+          message: 'Limit set to ' + limitNumber + ' responses. Form remains closed (limit reached).',
+          isAccepting: false
+        };
       }
 
       // Case 2: Available capacity exists -> reopen form if it was closed.
       if (!isAccepting) {
         form.setAcceptingResponses(true);
-        return 'Limit set to ' + limitNumber + ' responses. Form has been reopened.';
+        return {
+          message: 'Limit set to ' + limitNumber + ' responses. Form has been reopened.',
+          isAccepting: true
+        };
       }
 
-      return 'Limit set to ' + limitNumber + ' responses.';
+      return {
+        message: 'Limit set to ' + limitNumber + ' responses.',
+        isAccepting: true
+      };
     }
 
     throw new Error('Please enter a valid number greater than zero, or leave empty to remove the limit.');
@@ -110,7 +126,7 @@ function setMaxResponses(limit) {
 /**
  * Removes the response limit and deletes the onFormSubmit trigger.
  * Exposed to client-side UI via google.script.run.
- * @returns {string} A confirmation message.
+ * @returns {object} Result object with message and current form accepting status.
  */
 function removeLimit() {
   return withScriptLock(function() {
@@ -121,7 +137,7 @@ function removeLimit() {
 /**
  * Sets the confirmation message that appears after a form is submitted.
  * @param {string} message The confirmation message.
- * @returns {string} A confirmation message.
+ * @returns {object} Result object with confirmation message and form accepting status.
  */
 function setConfirmationMessage(message) {
   return withScriptLock(function() {
@@ -131,14 +147,17 @@ function setConfirmationMessage(message) {
 
     var form = FormApp.getActiveForm();
     form.setConfirmationMessage(message);
-    return 'Confirmation message updated successfully.';
+    return {
+      message: 'Confirmation message updated successfully.',
+      isAccepting: form.isAcceptingResponses()
+    };
   });
 }
 
 /**
  * Sets the message that appears when the form is closed.
  * @param {string} message The closed form message.
- * @returns {string} A confirmation message.
+ * @returns {object} Result object with confirmation message and form accepting status.
  */
 function setClosedMessage(message) {
   return withScriptLock(function() {
@@ -161,18 +180,26 @@ function setClosedMessage(message) {
       }
     }
 
-    return 'Closed form message updated successfully.';
+    return {
+      message: 'Closed form message updated successfully.',
+      isAccepting: form.isAcceptingResponses()
+    };
   });
 }
 
 /**
  * Forces a live recount of all form responses and synchronizes the cache.
  * Exposed to client-side UI via google.script.run.
- * @returns {number} The actual response count.
+ * @returns {object} Result object with actual response count and form accepting status.
  */
 function syncResponseCount() {
   return withScriptLock(function() {
-    return getAndSyncResponseCount();
+    var form = FormApp.getActiveForm();
+    var actualCount = getAndSyncResponseCount(form);
+    return {
+      count: actualCount,
+      isAccepting: form.isAcceptingResponses()
+    };
   }, 15000);
 }
 

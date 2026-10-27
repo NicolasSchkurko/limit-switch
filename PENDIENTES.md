@@ -7,7 +7,6 @@ Registro de los puntos abiertos del proyecto, ordenados de mayor a menor critici
 | # | Punto | Severidad | Por qué está acá |
 | --- | --- | --- | --- |
 | 12 | Definir la identidad definitiva para el listado | Media | Los assets actuales provienen de la etapa "Limiter"; el Marketplace requiere ícono, banner y capturas |
-| 13 | Mejorar UX/UI del diálogo de configuración | Baja | Falta indicador de estado (abierto/cerrado), guardado unificado, validación local, soporte de Enter y logo offline |
 | 14 | Evaluar la internacionalización de la interfaz | Baja | La UI está únicamente en inglés; `useLocaleFromApp` está declarado pero no hay traducciones |
 | 15 | Definir la estrategia de pruebas del código | Baja | No existen pruebas automatizadas; solo el checklist manual del README |
 | 16 | Crear el release v1.0.0 | Baja | No hay tags ni notas de versión; corresponde al mergear el rebrand |
@@ -23,27 +22,6 @@ Registro de los puntos abiertos del proyecto, ordenados de mayor a menor critici
 **Severidad:** media
 
 Los assets existentes en `misc/` provienen de la etapa anterior del proyecto y no contienen texto visible, por lo que siguen siendo utilizables. Para el listado público conviene definir el conjunto definitivo (ícono de 128×128, banner y capturas de pantalla) siguiendo la estética del ícono actual.
-
-## 13. Mejoras de UX/UI en el diálogo de configuración
-
-**Estado:** abierto  
-**Severidad:** baja  
-**Archivos:** `src/index.html`
-
-### Qué pasa
-
-1. **Estado invisible:** El diálogo no indica si el formulario está actualmente "Aceptando respuestas: Sí / No".
-2. **Guardado fragmentado:** Cuenta con tres botones independientes sin un guardado conjunto ni advertencias de cambios sin aplicar.
-3. **Falta de soporte de teclado:** Presionar la tecla `Enter` en los campos de entrada no ejecuta la acción.
-4. **Validación únicamente en servidor:** No hay validación inmediata en el cliente antes de invocar `google.script.run`.
-5. **Logo dependiente de red externa:** La etiqueta `<img>` referencia a `raw.githubusercontent.com`. En redes corporativas con proxy o firewalls puede no cargar.
-
-### Propuesta
-
-1. Incorporar badge visual con el estado actual del formulario (Open / Closed).
-2. Añadir event listeners para la tecla `Enter` y validación local de inputs antes del envío.
-3. Incrustar el logo en base64 en `index.html` (pesa solo ~6 KB) para garantizar funcionamiento offline y cumplir con políticas CSP.
-4. Diseñar un botón unificado de guardado o feedback claro por campo.
 
 ## 14. Internacionalización de la interfaz
 
@@ -128,6 +106,15 @@ Confirmado el desglose de costos:
 ---
 
 ## Corregidos
+
+### Mejoras de UX/UI en el diálogo de configuración — corregido 2026-10-27
+
+`src/index.html`, `src/main.js`, `src/actions.js` (antiguo ítem 13): Se renovó el diálogo de configuración con cinco mejoras clave:
+1. **Badge visual de estado:** Se añadió un indicador dinámico (`● Open` en verde / `● Closed` en rojo) que refleja el estado real del formulario (`isAcceptingResponses`) y se actualiza reactivamente tras cada guardado o sincronización.
+2. **Logo incrustado en Base64:** Se reemplazó la URL remota de GitHub por el archivo de imagen en base64 en línea, garantizando carga offline y cumpliendo con las políticas CSP de Google Workspace.
+3. **Soporte de teclado (Enter):** Al presionar `Enter` en cualquiera de los tres campos de entrada (`limit`, `confirmationMessage`, `closedMessage`) se ejecuta la acción correspondiente.
+4. **Validación en el cliente:** Se agregaron validaciones antes del envío por red (verificación de números positivos y no vacíos para mensajes), mostrando advertencias inmediatas sin consumir llamadas al servidor.
+5. **Respuestas estructuradas del servidor:** Las funciones de backend devuelven objetos `{ message, isAccepting }` para una actualización fluida de la interfaz.
 
 ### Gestión automática del ciclo de vida del formulario al ajustar límites — corregido 2026-10-27
 
