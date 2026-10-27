@@ -6,12 +6,8 @@ Registro de los puntos abiertos del proyecto, ordenados de mayor a menor critici
 
 | # | Punto | Severidad | Por qué está acá |
 | --- | --- | --- | --- |
-| 2 | Evitar reapertura accidental permanente del formulario en `setClosedMessage` | Alta | Si `setCustomClosedFormMessage` falla tras abrir el formulario temporalmente, queda abierto al público |
 | 3 | Tratar la desincronización de respuestas con Google Sheets vinculado | Alta | `deleteResponse()` en FormApp no elimina la fila en la hoja de cálculo asociada |
 | 4 | Reemplazar `createMenu` por `createAddonMenu` y proteger `onOpen` | Alta | Requisito estricto de Marketplace para Editor Add-ons; previene errores en `AuthMode.NONE` |
-| 5 | Publicar URLs y cumplimiento legal en dominio propio (Cloudflare) | Alta | Exigido por Google para verificar OAuth: dominio verificado en Search Console, cláusula Limited Use y borrado de datos |
-| 6 | Verificar en un entorno real el almacenamiento por formulario | Alta | El fix del 2026-10-15 todavía no fue probado con dos cuentas y dos formularios simultáneos |
-| 7 | Publicar el add-on en el Google Workspace Marketplace | Alta | Hoy solo existe en el proyecto de Apps Script: no hay forma de que otra persona lo instale (costo confirmado: $0 USD) |
 | 8 | Optimizar la lectura masiva de `form.getResponses().length` | Media | Carga todas las respuestas en memoria en cada envío, arriesgando timeouts y superación de cuotas |
 | 9 | Permitir remover o deshabilitar el límite y limpiar triggers | Media | Hoy no es posible borrar el límite ni desactivar la verificación sin desinstalar el add-on |
 | 10 | Eliminar llamadas a servicios en el ámbito global del script | Media | Declarar `PropertiesService` en la raíz de múltiples archivos genera colisiones y fallos en contextos no autenticados |
@@ -21,35 +17,10 @@ Registro de los puntos abiertos del proyecto, ordenados de mayor a menor critici
 | 14 | Evaluar la internacionalización de la interfaz | Baja | La UI está únicamente en inglés; `useLocaleFromApp` está declarado pero no hay traducciones |
 | 15 | Definir la estrategia de pruebas del código | Baja | No existen pruebas automatizadas; solo el checklist manual del README |
 | 16 | Crear el release v1.0.0 | Baja | No hay tags ni notas de versión; corresponde al mergear el rebrand |
+| 5 | Publicar URLs y cumplimiento legal en dominio propio (Cloudflare) | Baja | Exigido por Google para verificar OAuth: dominio verificado en Search Console, cláusula Limited Use y borrado de datos |
+| 7 | Publicar el add-on en el Google Workspace Marketplace | Baja | Hoy solo existe en el proyecto de Apps Script: no hay forma de que otra persona lo instale (costo confirmado: $0 USD) |
 
 ---
-
-## 2. Riesgo de reapertura permanente del formulario por excepción en `setClosedMessage`
-
-**Estado:** abierto  
-**Severidad:** alta  
-**Archivos:** `src/actions.js`
-
-### Qué pasa
-
-En `setClosedMessage(message)` se reabre el formulario temporalmente (`form.setAcceptingResponses(true)`) para eludir el bug de la API de Forms que impide actualizar el mensaje de formulario cerrado. Si la llamada a `form.setCustomClosedFormMessage(message)` arroja una excepción, el flujo salta directamente a `catch (e)`, sin llegar a `form.setAcceptingResponses(false)`. Como resultado, un formulario que debía permanecer cerrado queda **permanentemente abierto al público**.
-
-### Propuesta
-
-Asegurar la restauración del estado anterior mediante un bloque anidado `try ... finally`:
-```javascript
-var wasClosed = !form.isAcceptingResponses();
-if (wasClosed) {
-  form.setAcceptingResponses(true);
-}
-try {
-  form.setCustomClosedFormMessage(message);
-} finally {
-  if (wasClosed) {
-    form.setAcceptingResponses(false);
-  }
-}
-```
 
 ## 3. Desincronización con Google Sheets vinculado al eliminar excedentes
 
@@ -87,79 +58,6 @@ function onOpen(e) {
   menu.addToUi();
 }
 ```
-
-## 5. Publicar URLs públicas, landing page y cumplimiento legal en dominio propio (Cloudflare)
-
-**Estado:** abierto  
-**Severidad:** alta  
-**Archivos:** `docs/Privacy_policy.md`, `docs/Terms_of_service.md`
-
-### Qué falta
-
-El listado y la verificación de Google OAuth exigen que la Homepage, la Política de Privacidad y los Términos de Servicio estén publicados bajo un **dominio verificado en Google Search Console**. Hoy los documentos viven únicamente dentro del repositorio en Markdown y carecen de cláusulas mandatorias de Google Trust & Safety.
-
-### Propuesta y requisitos clave
-
-1. **Hosting en Cloudflare con dominio propio:**
-   - Desplegar la landing page y las políticas mediante Cloudflare Pages en el dominio propio del autor.
-   - En el panel DNS de Cloudflare, añadir el registro `TXT` para verificar el dominio en **Google Search Console** en segundos (paso obligatorio para que Google acepte el dominio en la consola de OAuth).
-   - Estructura de URLs recomendada:
-     - Homepage / Landing: `https://tudominio.com/limit-switch` (o subdominio `https://limit-switch.tudominio.com`).
-     - Política de Privacidad: `https://tudominio.com/limit-switch/privacy`.
-     - Términos de Servicio: `https://tudominio.com/limit-switch/terms`.
-
-2. **Cláusula obligatoria de "Limited Use" en Política de Privacidad:**
-   Google rechaza cualquier política que no incluya de forma visible y literal el compromiso con la política de datos de usuario de Google APIs:
-   > *"Limit-Switch's use and transfer to any other app of information received from Google APIs will adhere to [Google API Services User Data Policy](https://developers.google.com/terms/api-services-user-data-policy), including the Limited Use requirements."*
-
-3. **Sección explícita de Retención y Borrado de Datos (Data Retention & Deletion):**
-   Especificar que los datos de configuración se almacenan únicamente en el propio formulario mediante `DocumentProperties` y que se destruyen automáticamente cuando el usuario desinstala el add-on o elimina el formulario en Google Drive.
-
-4. **Consistencia de Identidad:**
-   El nombre de la aplicación (`Limit-Switch`) y el correo de soporte al usuario (`schkurkonicolas@gmail.com`) deben ser exactamente los mismos en la política, en los términos y en los campos de la pantalla de consentimiento de Google Cloud.
-
-5. **Requisitos de la Landing Page (Homepage):**
-   La página principal debe explicar qué hace el add-on y contar con enlaces claramente visibles en el pie de página hacia la Política de Privacidad y los Términos de Servicio.
-
-## 6. Verificación del almacenamiento por formulario
-
-**Estado:** abierto  
-**Severidad:** alta  
-**Archivos:** `src/main.js`, `src/actions.js`, `src/triggers.js`
-
-### Qué falta
-
-El fix (`getDocumentProperties()`) está en el código pero no fue desplegado ni probado en condiciones reales.
-
-### Propuesta
-
-Con dos cuentas de Google y dos formularios distintos, configurar límites diferentes y verificar que cada formulario conserve su propia configuración y cierre de forma independiente. Registrar el resultado antes de solicitar la publicación.
-
-## 7. Publicar el add-on en el Google Workspace Marketplace
-
-**Estado:** abierto  
-**Severidad:** alta  
-**Archivos:** proyecto de Apps Script (fuera del repositorio), `src/appsscript.json`
-
-### Qué falta
-
-El add-on es funcional y el código está versionado, pero no existe listado público: cualquier instalación requiere acceso directo al proyecto de Apps Script.
-
-### Costos de publicación y mantenimiento ($0 USD)
-
-Confirmado el desglose de costos:
-- **Tarifa de desarrollador:** $0 USD (Google Workspace Marketplace no cobra cuotas de alta ni anualidades, a diferencia de Apple o Google Play).
-- **Hosting / Servidor / Backend:** $0 USD (la lógica corre 100% sobre Google Apps Script bajo las cuotas gratuitas del usuario).
-- **Google Cloud Platform (GCP):** $0 USD (el proyecto GCP solo se utiliza para la configuración del OAuth Consent Screen y la ficha de Marketplace SDK, sin servicios facturables).
-- **Auditoría de seguridad externa (CASA):** $0 USD (Limit-Switch solo solicita `forms.currentonly`, clasificado como scope sensible pero **no restringido**; la revisión la realiza el equipo interno de Google sin costo).
-- **Hosting de soporte/políticas:** $0 USD (mediante Cloudflare Pages en su capa gratuita).
-- **Costo total:** **$0 USD**.
-
-### Propuesta
-
-1. Crear o vincular un proyecto estándar de Google Cloud y configurar la pantalla de consentimiento de OAuth (tipo externo, en modo prueba).
-2. Publicar un listado **no listado (unlisted)** mediante el Workspace Marketplace SDK: permite la instalación por enlace para el autor y los primeros usuarios, sin revisión de Google (hasta 100 usuarios de prueba).
-3. Solicitar la publicación pública una vez validado lo anterior (requiere verificación de la app: video demostrativo, justificación de scopes y las URLs y requisitos legales del punto 5).
 
 ## 8. Optimización de lectura masiva con `form.getResponses().length`
 
@@ -266,19 +164,82 @@ No hay pruebas automatizadas (Apps Script no incluye un runner nativo). Alternat
 **Estado:** abierto  
 **Severidad:** baja
 
-No existen tags ni releases. Al mergear la rama del rebrand corresponde crear `v1.0.0` con notas de versión (rebrand, almacenamiento por formulario, documentación).
+No existen tags ni releases. Al mergear las correcciones pendientes corresponde crear `v1.0.0` con notas de versión (rebrand, almacenamiento por formulario, correcciones de concurrencia, documentación).
+
+## 5. Publicar URLs públicas, landing page y cumplimiento legal en dominio propio (Cloudflare)
+
+**Estado:** abierto  
+**Severidad:** baja  
+**Archivos:** `docs/Privacy_policy.md`, `docs/Terms_of_service.md`
+
+### Qué falta
+
+El listado y la verificación de Google OAuth exigen que la Homepage, la Política de Privacidad y los Términos de Servicio estén publicados bajo un **dominio verificado en Google Search Console**. Hoy los documentos viven únicamente dentro del repositorio en Markdown y carecen de cláusulas mandatorias de Google Trust & Safety.
+
+### Propuesta y requisitos clave
+
+1. **Hosting en Cloudflare con dominio propio:**
+   - Desplegar la landing page y las políticas mediante Cloudflare Pages en el dominio propio del autor.
+   - En el panel DNS de Cloudflare, añadir el registro `TXT` para verificar el dominio en **Google Search Console** en segundos (paso obligatorio para que Google acepte el dominio en la consola de OAuth).
+   - Estructura de URLs recomendada:
+     - Homepage / Landing: `https://tudominio.com/limit-switch` (o subdominio `https://limit-switch.tudominio.com`).
+     - Política de Privacidad: `https://tudominio.com/limit-switch/privacy`.
+     - Términos de Servicio: `https://tudominio.com/limit-switch/terms`.
+
+2. **Cláusula obligatoria de "Limited Use" en Política de Privacidad:**
+   Google rechaza cualquier política que no incluya de forma visible y literal el compromiso con la política de datos de usuario de Google APIs:
+   > *"Limit-Switch's use and transfer to any other app of information received from Google APIs will adhere to [Google API Services User Data Policy](https://developers.google.com/terms/api-services-user-data-policy), including the Limited Use requirements."*
+
+3. **Sección explícita de Retención y Borrado de Datos (Data Retention & Deletion):**
+   Especificar que los datos de configuración se almacenan únicamente en el propio formulario mediante `DocumentProperties` y que se destruyen automáticamente cuando el usuario desinstala el add-on o elimina el formulario en Google Drive.
+
+4. **Consistencia de Identidad:**
+   El nombre de la aplicación (`Limit-Switch`) y el correo de soporte al usuario (`schkurkonicolas@gmail.com`) deben ser exactamente los mismos en la política, en los términos y en los campos de la pantalla de consentimiento de Google Cloud.
+
+5. **Requisitos de la Landing Page (Homepage):**
+   La página principal debe explicar qué hace el add-on y contar con enlaces claramente visibles en el pie de página hacia la Política de Privacidad y los Términos de Servicio.
+
+## 7. Publicar el add-on en el Google Workspace Marketplace
+
+**Estado:** abierto  
+**Severidad:** baja  
+**Archivos:** proyecto de Apps Script (fuera del repositorio), `src/appsscript.json`
+
+### Qué falta
+
+El add-on es funcional y el código está versionado, pero no existe listado público: cualquier instalación requiere acceso directo al proyecto de Apps Script.
+
+### Costos de publicación y mantenimiento ($0 USD)
+
+Confirmado el desglose de costos:
+- **Tarifa de desarrollador:** $0 USD (Google Workspace Marketplace no cobra cuotas de alta ni anualidades, a diferencia de Apple o Google Play).
+- **Hosting / Servidor / Backend:** $0 USD (la lógica corre 100% sobre Google Apps Script bajo las cuotas gratuitas del usuario).
+- **Google Cloud Platform (GCP):** $0 USD (el proyecto GCP solo se utiliza para la configuración del OAuth Consent Screen y la ficha de Marketplace SDK, sin servicios facturables).
+- **Auditoría de seguridad externa (CASA):** $0 USD (Limit-Switch solo solicita `forms.currentonly`, clasificado como scope sensible pero **no restringido**; la revisión la realiza el equipo interno de Google sin costo).
+- **Hosting de soporte/políticas:** $0 USD (mediante Cloudflare Pages en su capa gratuita).
+- **Costo total:** **$0 USD**.
+
+### Propuesta
+
+1. Crear o vincular un proyecto estándar de Google Cloud y configurar la pantalla de consentimiento de OAuth (tipo externo, en modo prueba).
+2. Publicar un listado **no listado (unlisted)** mediante el Workspace Marketplace SDK: permite la instalación por enlace para el autor y los primeros usuarios, sin revisión de Google (hasta 100 usuarios de prueba).
+3. Solicitar la publicación pública una vez validado lo anterior (requiere verificación de la app: video demostrativo, justificación de scopes y las URLs y requisitos legales del punto 5).
 
 ---
 
 ## Corregidos
 
+### Reapertura accidental del formulario en `setClosedMessage` — corregido 2026-10-27
+
+`src/actions.js` (antiguo ítem 2): La restauración `form.setAcceptingResponses(false)` pasó del bloque principal al `finally` de un `try` interno que envuelve únicamente a `form.setCustomClosedFormMessage(message)`. Esto garantiza que el formulario se cierre siempre, incluso si la API de Google Forms lanza una excepción al actualizar el mensaje.
+
 ### Condición de carrera en `checkResponseLimit` (doble eliminación) — corregido 2026-10-27
 
-`src/triggers.js` (antiguo ítem 1): Reemplazada la comprobación basada en el conteo total instantáneo y `!form.isAcceptingResponses()` por una búsqueda posicional cronológica de `e.response.getId()` dentro de `form.getResponses()`. Las respuestas con índice `< maxResponses` se preservan siempre (dentro del cupo) y únicamente se eliminan aquellas cuyo índice es `>= maxResponses`.
+`src/triggers.js` (antiguo ítem 1): Reemplazada la comprobación basada en el conteo total instantáneo y `!form.isAcceptingResponses()` por una búsqueda posicional cronológica de `e.response.getId()` dentro de `form.getResponses()`. Las respuestas con índice `< maxResponses` se preservan siempre; únicamente se eliminan aquellas cuyo índice es `>= maxResponses`.
 
 ### Almacenamiento compartido entre formularios — corregido 2026-10-15
 
-`src/main.js`, `src/actions.js`, `src/triggers.js`: `PropertiesService.getScriptProperties()` (alcance del proyecto de script, compartido entre todos los usuarios y formularios) reemplazado por `getDocumentProperties()` (alcance del formulario). Al no existir publicación previa, no se requiere migración de datos. Queda pendiente la verificación en entorno real (ver punto 6).
+`src/main.js`, `src/actions.js`, `src/triggers.js`: `PropertiesService.getScriptProperties()` (alcance del proyecto de script, compartido entre todos los usuarios y formularios) reemplazado por `getDocumentProperties()` (alcance del formulario). Al no existir publicación previa, no se requiere migración de datos.
 
 ### Typos — corregido 2026-10-15
 

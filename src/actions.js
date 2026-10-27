@@ -82,11 +82,15 @@ function setClosedMessage(message) {
       form.setAcceptingResponses(true);
     }
 
-    form.setCustomClosedFormMessage(message);
-
-    if (wasClosed) {
-      form.setAcceptingResponses(false);
+    try {
+      form.setCustomClosedFormMessage(message);
+    } finally {
+      // Guarantee the form is closed again even if setCustomClosedFormMessage throws.
+      if (wasClosed) {
+        form.setAcceptingResponses(false);
+      }
     }
+
     return 'Closed form message updated successfully.';
   } catch (e) {
     if (e.message.includes('PERMISSION_DENIED')) {

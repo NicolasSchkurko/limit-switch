@@ -6,12 +6,8 @@ Log of open project items, ordered from highest to lowest criticality. Each item
 
 | # | Item | Severity | Why it is here |
 | --- | --- | --- | --- |
-| 2 | Prevent accidental permanent form reopening in `setClosedMessage` | High | If `setCustomClosedFormMessage` fails after temporarily reopening the form, the form remains publicly open indefinitely |
 | 3 | Address response desynchronization with linked Google Sheets | High | `deleteResponse()` in FormApp does not remove the corresponding row in the linked spreadsheet |
-| 4 | Replace `createMenu` with `createAddonMenu` and protect `onOpen` | High | Mandatory requirement for Google Workspace Marketplace Editor Add-ons; avoids unauthenticated crashes under `AuthMode.NONE` |
-| 5 | Publish URLs and legal compliance on custom domain (Cloudflare) | High | Required for Google OAuth verification: domain verified via Search Console, Limited Use disclosure, and data deletion clause |
-| 6 | Verify per-form storage in a real-world environment | High | The 2026-10-15 fix has not been verified yet with two separate accounts and two forms simultaneously |
-| 7 | Publish the add-on on the Google Workspace Marketplace | High | Currently only exists in the Apps Script project: nobody else can install it (confirmed total cost: $0 USD) |
+| 4 | Replace `createMenu` with `createAddonMenu` and protect `onOpen` | High | Mandatory requirement for Google Workspace Marketplace Editor Add-ons; avoids crashes under `AuthMode.NONE` |
 | 8 | Optimize bulk response reading with `form.getResponses().length` | Medium | Loads all responses into memory on every submission, risking execution timeouts and quota exhaustion |
 | 9 | Allow removing or disabling the limit and clean up triggers | Medium | Currently impossible to remove the limit or disable enforcement without uninstalling the add-on |
 | 10 | Eliminate service calls from the global script scope | Medium | Declaring `PropertiesService` at top-level across multiple files causes V8 collisions and failures in unauthorized contexts |
@@ -20,36 +16,11 @@ Log of open project items, ordered from highest to lowest criticality. Each item
 | 13 | Improve settings dialog UX/UI (`index.html`) | Low | Missing open/closed status badge, unified save workflow, client-side input validation, Enter key support, and offline logo |
 | 14 | Evaluate UI internationalization (i18n) | Low | UI is currently English-only; `useLocaleFromApp` is declared but there are no translations |
 | 15 | Define code testing strategy | Low | No automated tests exist; only the manual checklist in the README |
-| 16 | Create the v1.0.0 release | Low | No git tags or release notes exist; should be tagged once the rebrand branch is merged |
+| 16 | Create the v1.0.0 release | Low | No git tags or release notes exist; should be tagged once pending items are resolved |
+| 5 | Publish URLs and legal compliance on custom domain (Cloudflare) | Low | Required for Google OAuth verification: domain verified via Search Console, Limited Use disclosure, and data deletion clause |
+| 7 | Publish the add-on on the Google Workspace Marketplace | Low | Currently only exists in the Apps Script project: nobody else can install it (confirmed total cost: $0 USD) |
 
 ---
-
-## 2. Risk of permanent form reopening on exception in `setClosedMessage`
-
-**Status:** open  
-**Severity:** high  
-**Files:** `src/actions.js`
-
-### What is happening
-
-In `setClosedMessage(message)`, the form is temporarily reopened (`form.setAcceptingResponses(true)`) to work around a Google Forms API bug that prevents updating the closed-form message while closed. If `form.setCustomClosedFormMessage(message)` throws an exception (due to API quota, invalid characters, or network glitch), execution jumps directly to `catch (e)`, bypassing `form.setAcceptingResponses(false)`. As a result, a form that was supposed to stay closed remains **permanently open to the public**.
-
-### Proposal
-
-Guarantee state restoration using a nested `try ... finally` block:
-```javascript
-var wasClosed = !form.isAcceptingResponses();
-if (wasClosed) {
-  form.setAcceptingResponses(true);
-}
-try {
-  form.setCustomClosedFormMessage(message);
-} finally {
-  if (wasClosed) {
-    form.setAcceptingResponses(false);
-  }
-}
-```
 
 ## 3. Response desynchronization with linked Google Sheets upon deleting excess submissions
 
@@ -87,79 +58,6 @@ function onOpen(e) {
   menu.addToUi();
 }
 ```
-
-## 5. Publish URLs, landing page, and legal compliance on custom domain (Cloudflare)
-
-**Status:** open  
-**Severity:** high  
-**Files:** `docs/Privacy_policy.md`, `docs/Terms_of_service.md`
-
-### What is missing
-
-Google OAuth verification requires that the Homepage, Privacy Policy, and Terms of Service be publicly reachable under a **domain verified in Google Search Console**. The documents currently live only in Markdown inside the repository and lack mandatory Google Trust & Safety clauses.
-
-### Proposal & Key Requirements
-
-1. **Hosting on Cloudflare with a custom domain:**
-   - Deploy the landing page and policy documents via Cloudflare Pages on the author's custom domain.
-   - Add the Google Search Console DNS `TXT` verification record in Cloudflare DNS (verified within seconds, fulfilling Google's domain ownership mandate).
-   - Recommended URL structure:
-     - Homepage / Landing: `https://yourdomain.com/limit-switch` (or subdomain `https://limit-switch.yourdomain.com`).
-     - Privacy Policy: `https://yourdomain.com/limit-switch/privacy`.
-     - Terms of Service: `https://yourdomain.com/limit-switch/terms`.
-
-2. **Mandatory "Limited Use" disclosure in Privacy Policy:**
-   Google Trust & Safety rejects verification requests if the policy does not include the exact compliance statement:
-   > *"Limit-Switch's use and transfer to any other app of information received from Google APIs will adhere to [Google API Services User Data Policy](https://developers.google.com/terms/api-services-user-data-policy), including the Limited Use requirements."*
-
-3. **Explicit Data Retention & Deletion section:**
-   Specify that configuration settings are stored solely within the form via `DocumentProperties` and are automatically destroyed when the user uninstalls the add-on or deletes the form from Google Drive.
-
-4. **Identity & Support Email Consistency:**
-   The application name (`Limit-Switch`) and user support email (`schkurkonicolas@gmail.com`) must match across the policy, terms, and Google Cloud OAuth Consent Screen configuration.
-
-5. **Landing Page Requirements:**
-   The homepage must clearly describe the add-on's purpose and contain visible footer links to both the Privacy Policy and Terms of Service.
-
-## 6. Verification of per-form storage in a real-world environment
-
-**Status:** open  
-**Severity:** high  
-**Files:** `src/main.js`, `src/actions.js`, `src/triggers.js`
-
-### What is missing
-
-The fix (`getDocumentProperties()`) is in the code but has not been deployed or tested under real conditions with multi-tenant forms.
-
-### Proposal
-
-Using two Google accounts and two different forms, set different limits and verify that each form retains its own isolated configuration and closes independently. Record the result before submitting for public listing.
-
-## 7. Publish the add-on on the Google Workspace Marketplace
-
-**Status:** open  
-**Severity:** high  
-**Files:** Apps Script project (outside repository), `src/appsscript.json`
-
-### What is missing
-
-The add-on is functional and version-controlled, but has no public listing: installation currently requires direct access to the Apps Script project.
-
-### Publication and Maintenance Costs ($0 USD)
-
-Confirmed cost breakdown:
-- **Developer Registration Fee:** $0 USD (Google Workspace Marketplace does not charge registration or annual fees, unlike Apple or Google Play).
-- **Hosting / Server / Backend:** $0 USD (all logic runs on Google Apps Script under free user quotas).
-- **Google Cloud Platform (GCP):** $0 USD (the GCP project is only used for OAuth Consent and Marketplace SDK setup; no paid resources used).
-- **External Security Audit (CASA):** $0 USD (Limit-Switch only requests `forms.currentonly`, which is sensitive but **not restricted**; review is conducted internally and free of charge by Google).
-- **Support / Policy Hosting:** $0 USD (via Cloudflare Pages free tier).
-- **Total Cost:** **$0 USD**.
-
-### Proposal
-
-1. Create or link a standard Google Cloud project and configure the OAuth consent screen (external type, testing mode).
-2. Publish an **unlisted** listing via Workspace Marketplace SDK: allows direct link installation for the author and first users without Google review (up to 100 test users).
-3. Request public publication once validated (requires app verification: demo video, scope justification, and the URLs/legal requirements from item 5).
 
 ## 8. Optimize bulk reading with `form.getResponses().length`
 
@@ -266,19 +164,82 @@ There are no automated tests (Apps Script lacks a native runner). Alternatives: 
 **Status:** open  
 **Severity:** low
 
-No tags or releases exist yet. Once the pending high/critical items and rebrand changes are merged, create `v1.0.0` with release notes (rebrand, per-form storage, documentation).
+No tags or releases exist yet. Once the pending items are resolved, create `v1.0.0` with release notes (rebrand, per-form storage, concurrency fixes, documentation).
+
+## 5. Publish URLs, landing page, and legal compliance on custom domain (Cloudflare)
+
+**Status:** open  
+**Severity:** low  
+**Files:** `docs/Privacy_policy.md`, `docs/Terms_of_service.md`
+
+### What is missing
+
+Google OAuth verification requires that the Homepage, Privacy Policy, and Terms of Service be publicly reachable under a **domain verified in Google Search Console**. The documents currently live only in Markdown inside the repository and lack mandatory Google Trust & Safety clauses.
+
+### Proposal & Key Requirements
+
+1. **Hosting on Cloudflare with a custom domain:**
+   - Deploy the landing page and policy documents via Cloudflare Pages on the author's custom domain.
+   - Add the Google Search Console DNS `TXT` verification record in Cloudflare DNS (verified within seconds, fulfilling Google's domain ownership mandate).
+   - Recommended URL structure:
+     - Homepage / Landing: `https://yourdomain.com/limit-switch` (or subdomain `https://limit-switch.yourdomain.com`).
+     - Privacy Policy: `https://yourdomain.com/limit-switch/privacy`.
+     - Terms of Service: `https://yourdomain.com/limit-switch/terms`.
+
+2. **Mandatory "Limited Use" disclosure in Privacy Policy:**
+   Google Trust & Safety rejects verification requests if the policy does not include the exact compliance statement:
+   > *"Limit-Switch's use and transfer to any other app of information received from Google APIs will adhere to [Google API Services User Data Policy](https://developers.google.com/terms/api-services-user-data-policy), including the Limited Use requirements."*
+
+3. **Explicit Data Retention & Deletion section:**
+   Specify that configuration settings are stored solely within the form via `DocumentProperties` and are automatically destroyed when the user uninstalls the add-on or deletes the form from Google Drive.
+
+4. **Identity & Support Email Consistency:**
+   The application name (`Limit-Switch`) and user support email (`schkurkonicolas@gmail.com`) must match across the policy, terms, and Google Cloud OAuth Consent Screen configuration.
+
+5. **Landing Page Requirements:**
+   The homepage must clearly describe the add-on's purpose and contain visible footer links to both the Privacy Policy and Terms of Service.
+
+## 7. Publish the add-on on the Google Workspace Marketplace
+
+**Status:** open  
+**Severity:** low  
+**Files:** Apps Script project (outside repository), `src/appsscript.json`
+
+### What is missing
+
+The add-on is functional and version-controlled, but has no public listing: installation currently requires direct access to the Apps Script project.
+
+### Publication and Maintenance Costs ($0 USD)
+
+Confirmed cost breakdown:
+- **Developer Registration Fee:** $0 USD (Google Workspace Marketplace does not charge registration or annual fees, unlike Apple or Google Play).
+- **Hosting / Server / Backend:** $0 USD (all logic runs on Google Apps Script under free user quotas).
+- **Google Cloud Platform (GCP):** $0 USD (the GCP project is only used for OAuth Consent and Marketplace SDK setup; no paid resources used).
+- **External Security Audit (CASA):** $0 USD (Limit-Switch only requests `forms.currentonly`, which is sensitive but **not restricted**; review is conducted internally and free of charge by Google).
+- **Support / Policy Hosting:** $0 USD (via Cloudflare Pages free tier).
+- **Total Cost:** **$0 USD**.
+
+### Proposal
+
+1. Create or link a standard Google Cloud project and configure the OAuth consent screen (external type, testing mode).
+2. Publish an **unlisted** listing via Workspace Marketplace SDK: allows direct link installation for the author and first users without Google review (up to 100 test users).
+3. Request public publication once validated (requires app verification: demo video, scope justification, and the URLs/legal requirements from item 5).
 
 ---
 
 ## Fixed
 
+### Accidental form reopening in `setClosedMessage` — fixed 2026-10-27
+
+`src/actions.js` (former item 2): The `form.setAcceptingResponses(false)` restoration call was moved from the main block into the `finally` clause of a nested `try` wrapping only `form.setCustomClosedFormMessage(message)`. This guarantees the form is always re-closed, even if the Google Forms API throws an exception while updating the message.
+
 ### Race condition in `checkResponseLimit` (double deletion) — fixed 2026-10-27
 
-`src/triggers.js` (former item 1): Replaced logic based on instantaneous response counts and `!form.isAcceptingResponses()` with a chronological index check of `e.response.getId()` within `form.getResponses()`. Responses with index `< maxResponses` are always kept (within the quota); only submissions with index `>= maxResponses` are removed.
+`src/triggers.js` (former item 1): Replaced logic based on instantaneous response counts and `!form.isAcceptingResponses()` with a chronological index check of `e.response.getId()` within `form.getResponses()`. Responses with index `< maxResponses` are always kept; only submissions with index `>= maxResponses` are removed.
 
 ### Shared storage across forms — fixed 2026-10-15
 
-`src/main.js`, `src/actions.js`, `src/triggers.js`: `PropertiesService.getScriptProperties()` (script-project scope, shared by all users and forms) replaced by `getDocumentProperties()` (form scope). Since there was no previous publication, no data migration is required. Real-world environment verification is still pending (see item 6).
+`src/main.js`, `src/actions.js`, `src/triggers.js`: `PropertiesService.getScriptProperties()` (script-project scope, shared by all users and forms) replaced by `getDocumentProperties()` (form scope). Since there was no previous publication, no data migration is required.
 
 ### Typos — fixed 2026-10-15
 
