@@ -1,4 +1,11 @@
-var formProperties = PropertiesService.getDocumentProperties();
+/**
+ * Returns the document properties for the active form.
+ * Uses lazy loading to avoid top-level service calls.
+ * @returns {GoogleAppsScript.Properties.Properties} The form's document properties.
+ */
+function getProperties() {
+  return PropertiesService.getDocumentProperties();
+}
 
 /**
  * Persists the cached response count in DocumentProperties.
@@ -6,7 +13,7 @@ var formProperties = PropertiesService.getDocumentProperties();
  * @returns {number} The stored count.
  */
 function setCachedResponseCount(count) {
-  formProperties.setProperty('responseCount', count.toString());
+  getProperties().setProperty('responseCount', count.toString());
   return count;
 }
 
@@ -22,11 +29,33 @@ function getAndSyncResponseCount(form) {
 }
 
 /**
+ * Wraps an action within a script lock and standardizes error handling.
+ * @param {Function} actionFn The callback function to execute while holding the lock.
+ * @param {number} [timeoutMs=30000] Maximum milliseconds to wait for the script lock.
+ * @returns {*} The return value of actionFn.
+ */
+function withScriptLock(actionFn, timeoutMs) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(timeoutMs || 30000);
+
+  try {
+    return actionFn();
+  } catch (e) {
+    if (e.message && e.message.includes('PERMISSION_DENIED')) {
+      throw new Error('Permission Error: It seems you have multiple Google accounts logged in. Please log out of other accounts and try again.');
+    }
+    throw new Error(e.message);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
  * Internal helper to clear the max responses limit and remove the submission trigger.
  * @returns {string} A confirmation message.
  */
 function clearLimitInternal() {
-  formProperties.deleteProperty('maxResponses');
+  getProperties().deleteProperty('maxResponses');
   deleteTrigger();
   return 'Response limit removed successfully.';
 }
@@ -37,10 +66,7 @@ function clearLimitInternal() {
  * @returns {string} A confirmation or error message.
  */
 function setMaxResponses(limit) {
-  var lock = LockService.getScriptLock();
-  lock.waitLock(30000);
-
-  try {
+  return withScriptLock(function() {
     if (limit === null || limit === undefined || (typeof limit === 'string' && limit.trim() === '')) {
       return clearLimitInternal();
     }
@@ -51,25 +77,14 @@ function setMaxResponses(limit) {
     }
 
     if (!isNaN(limitNumber) && limitNumber > 0) {
-      formProperties.setProperty('maxResponses', limitNumber.toString());
+      getProperties().setProperty('maxResponses', limitNumber.toString());
       getAndSyncResponseCount();
       setTrigger();
       return 'Limit set to ' + limitNumber + ' responses.';
     }
 
     throw new Error('Please enter a valid number greater than zero, or leave empty to remove the limit.');
-
-  } catch (e) {
-
-    if (e.message.includes('PERMISSION_DENIED')) {
-      throw new Error('Permission Error: It seems you have multiple Google accounts logged in. Please log out of other accounts and try again.');
-    }
-
-    throw new Error(e.message);
-
-  } finally {
-    lock.releaseLock();
-  }
+  });
 }
 
 /**
@@ -78,19 +93,9 @@ function setMaxResponses(limit) {
  * @returns {string} A confirmation message.
  */
 function removeLimit() {
-  var lock = LockService.getScriptLock();
-  lock.waitLock(30000);
-
-  try {
+  return withScriptLock(function() {
     return clearLimitInternal();
-  } catch (e) {
-    if (e.message.includes('PERMISSION_DENIED')) {
-      throw new Error('Permission Error: It seems you have multiple Google accounts logged in. Please log out of other accounts and try again.');
-    }
-    throw new Error(e.message);
-  } finally {
-    lock.releaseLock();
-  }
+  });
 }
 
 /**
@@ -99,11 +104,7 @@ function removeLimit() {
  * @returns {string} A confirmation message.
  */
 function setConfirmationMessage(message) {
-  var lock = LockService.getScriptLock();
-  lock.waitLock(30000);
-
-  try {
-
+  return withScriptLock(function() {
     if (messageIsEmpty(message)) {
       throw new Error('Confirmation message cannot be empty.');
     }
@@ -111,15 +112,7 @@ function setConfirmationMessage(message) {
     var form = FormApp.getActiveForm();
     form.setConfirmationMessage(message);
     return 'Confirmation message updated successfully.';
-
-  } catch (e) {
-    if (e.message.includes('PERMISSION_DENIED')) {
-      throw new Error('Permission Error: It seems you have multiple Google accounts logged in. Please log out of other accounts and try again.');
-    }
-    throw new Error(e.message);
-  } finally {
-    lock.releaseLock();
-  }
+  });
 }
 
 /**
@@ -128,10 +121,7 @@ function setConfirmationMessage(message) {
  * @returns {string} A confirmation message.
  */
 function setClosedMessage(message) {
-  var lock = LockService.getScriptLock();
-  lock.waitLock(30000);
-
-  try {
+  return withScriptLock(function() {
     if (messageIsEmpty(message)) {
       throw new Error('Closed form message cannot be empty.');
     }
@@ -152,14 +142,7 @@ function setClosedMessage(message) {
     }
 
     return 'Closed form message updated successfully.';
-  } catch (e) {
-    if (e.message.includes('PERMISSION_DENIED')) {
-      throw new Error('Permission Error: It seems you have multiple Google accounts logged in. Please log out of other accounts and try again.');
-    }
-    throw new Error(e.message);
-  } finally {
-    lock.releaseLock();
-  }
+  });
 }
 
 /**
@@ -168,26 +151,16 @@ function setClosedMessage(message) {
  * @returns {number} The actual response count.
  */
 function syncResponseCount() {
-  var lock = LockService.getScriptLock();
-  lock.waitLock(15000);
-
-  try {
+  return withScriptLock(function() {
     return getAndSyncResponseCount();
-  } catch (e) {
-    if (e.message.includes('PERMISSION_DENIED')) {
-      throw new Error('Permission Error: It seems you have multiple Google accounts logged in. Please log out of other accounts and try again.');
-    }
-    throw new Error(e.message);
-  } finally {
-    lock.releaseLock();
-  }
+  }, 15000);
 }
 
 /**
- * Verifies if a message it's empty.
+ * Verifies if a message is empty.
  * @param {string} message The evaluated message.
  * @returns {boolean} The validation.
  */
-function messageIsEmpty(message){
- return !message || message.trim() === ''
+function messageIsEmpty(message) {
+  return !message || message.trim() === '';
 }

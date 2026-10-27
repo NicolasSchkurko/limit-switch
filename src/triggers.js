@@ -1,4 +1,3 @@
-var formProperties = PropertiesService.getDocumentProperties();
 var SAFETY_MARGIN = 10;
 
 /**
@@ -12,11 +11,11 @@ function checkResponseLimit(e) {
   lock.waitLock(30000); // Wait for any other modifications to finish.
 
   try {
-    var maxResponses = parseInt(formProperties.getProperty('maxResponses') || '0', 10);
+    var maxResponses = parseInt(getProperties().getProperty('maxResponses') || '0', 10);
     if (maxResponses <= 0) return;
 
     // Fast-path: Check estimated response count.
-    var cachedCount = parseInt(formProperties.getProperty('responseCount') || '-1', 10);
+    var cachedCount = parseInt(getProperties().getProperty('responseCount') || '-1', 10);
 
     // If cache was never initialized, sync live count right now using the shared helper.
     if (cachedCount === -1) {

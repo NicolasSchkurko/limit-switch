@@ -6,7 +6,6 @@ Registro de los puntos abiertos del proyecto, ordenados de mayor a menor critici
 
 | # | Punto | Severidad | Por qué está acá |
 | --- | --- | --- | --- |
-| 10 | Eliminar llamadas a servicios en el ámbito global y unificar locks | Media | Declarar `PropertiesService` en la raíz genera colisiones en V8; el boilerplate de `LockService` se repite en 4 funciones |
 | 11 | Definir el comportamiento al modificar el límite con el formulario cerrado | Media | Subir el límite no reabre el formulario; bajarlo por debajo del conteo actual no lo cierra hasta el próximo envío |
 | 12 | Definir la identidad definitiva para el listado | Media | Los assets actuales provienen de la etapa "Limiter"; el Marketplace requiere ícono, banner y capturas |
 | 13 | Mejorar UX/UI del diálogo de configuración | Baja | Falta indicador de estado (abierto/cerrado), guardado unificado, validación local, soporte de Enter y logo offline |
@@ -18,21 +17,6 @@ Registro de los puntos abiertos del proyecto, ordenados de mayor a menor critici
 
 ---
 
-## 10. Eliminación de llamadas a servicios en el ámbito global y unificación de locks
-
-**Estado:** abierto  
-**Severidad:** media  
-**Archivos:** `src/main.js`, `src/actions.js`, `src/triggers.js`
-
-### Qué pasa
-
-1. `var formProperties = PropertiesService.getDocumentProperties();` se ejecuta en la raíz global de tres archivos distintos. Esto genera colisiones en V8 y puede fallar prematuramente en contextos donde los servicios aún no cuentan con autorización (por ejemplo, durante la evaluación previa de triggers simples).
-2. En `src/actions.js`, las 4 funciones públicas (`setMaxResponses`, `setConfirmationMessage`, `setClosedMessage`, `syncResponseCount`) repiten exactamente el mismo bloque de ~15 líneas para solicitar el lock (`LockService.getScriptLock()`), esperar el timeout, capturar errores de cuentas múltiples (`PERMISSION_DENIED`) y liberar el lock en el bloque `finally`.
-
-### Propuesta
-
-1. **Lazy loading de `PropertiesService`:** Eliminar la inicialización global en el tope de los archivos y crear una función auxiliar `getProperties()` (o acceder bajo demanda) dentro de las funciones que realmente lo requieran.
-2. **Wrapper reutilizable `withScriptLock`:** Implementar una función de orden superior `withScriptLock(actionFn, timeoutMs)` en `actions.js` que encapsule la adquisición del lock, el manejo centralizado de excepciones (`PERMISSION_DENIED`) y la liberación garantizada en `finally`.
 
 ## 11. Comportamiento al modificar el límite con el formulario cerrado
 
@@ -158,6 +142,10 @@ Confirmado el desglose de costos:
 ---
 
 ## Corregidos
+
+### Eliminación de llamadas globales a servicios y unificación de locks — corregido 2026-10-27
+
+`src/main.js`, `src/actions.js`, `src/triggers.js` (antiguo ítem 10): Se eliminaron las llamadas globales `var formProperties = PropertiesService.getDocumentProperties()` en la raíz de los archivos, reemplazándolas por acceso perezoso mediante `getProperties()`. Esto previene colisiones en el motor V8 y evita fallos en contextos con permisos restringidos (como triggers simples `onOpen`). Adicionalmente, se unificó la adquisición de locks y el control de errores multicuenta (`PERMISSION_DENIED`) en una función de orden superior reutilizable `withScriptLock(actionFn, timeoutMs)`, reduciendo código duplicado en todas las acciones públicas de `src/actions.js`.
 
 ### Desactivación y borrado de límite con limpieza de triggers — corregido 2026-10-27
 

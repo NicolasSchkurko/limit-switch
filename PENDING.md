@@ -6,7 +6,6 @@ Log of open project items, ordered from highest to lowest criticality. Each item
 
 | # | Item | Severity | Why it is here |
 | --- | --- | --- | --- |
-| 10 | Eliminate service calls from global scope and unify lock management | Medium | Declaring `PropertiesService` at top-level causes V8 collisions; `LockService` boilerplate is repeated across 4 functions |
 | 11 | Decide behavior when modifying the limit while the form is closed | Medium | Raising the limit does not reopen the form; lowering it below current count does not close it until the next submission |
 | 12 | Define final brand assets for the listing | Medium | Existing assets belong to the "Limiter" stage; the Marketplace requires a 128×128 icon, banner, and screenshots |
 | 13 | Improve settings dialog UX/UI (`index.html`) | Low | Missing open/closed status badge, unified save workflow, client-side input validation, Enter key support, and offline logo |
@@ -18,21 +17,6 @@ Log of open project items, ordered from highest to lowest criticality. Each item
 
 ---
 
-## 10. Eliminate service calls from global scope and unify lock management
-
-**Status:** open  
-**Severity:** medium  
-**Files:** `src/main.js`, `src/actions.js`, `src/triggers.js`
-
-### What is happening
-
-1. `var formProperties = PropertiesService.getDocumentProperties();` executes in the global root scope of three different files. This creates collisions under V8 and causes runtime errors in contexts where services lack authorization (e.g., during initial simple trigger evaluation).
-2. In `src/actions.js`, all 4 public functions (`setMaxResponses`, `setConfirmationMessage`, `setClosedMessage`, `syncResponseCount`) duplicate an identical ~15-line boilerplate block to acquire a script lock (`LockService.getScriptLock()`), wait for lock timeout, catch multi-account errors (`PERMISSION_DENIED`), and release the lock inside a `finally` block.
-
-### Proposal
-
-1. **Lazy loading of `PropertiesService`:** Remove top-level initializations at the root of files and implement a `getProperties()` helper (or lazy inline access) inside functions that genuinely require it.
-2. **Reusable `withScriptLock` wrapper:** Implement a higher-order helper `withScriptLock(actionFn, timeoutMs)` in `actions.js` encapsulating lock acquisition, centralized exception handling (`PERMISSION_DENIED`), and guaranteed release in `finally`.
 
 ## 11. Behavior when modifying the limit while the form is closed
 
@@ -158,6 +142,10 @@ Confirmed cost breakdown:
 ---
 
 ## Fixed
+
+### Elimination of global service calls and unified lock management — fixed 2026-10-27
+
+`src/main.js`, `src/actions.js`, `src/triggers.js` (former item 10): Removed top-level `var formProperties = PropertiesService.getDocumentProperties()` calls across all script files, replacing them with lazy access via `getProperties()`. This prevents V8 collisions and avoids authorization failures in restricted contexts (such as simple `onOpen` triggers). In addition, script lock acquisition and multi-account exception handling (`PERMISSION_DENIED`) were unified into a reusable higher-order function `withScriptLock(actionFn, timeoutMs)`, eliminating boilerplate duplication across all public actions in `src/actions.js`.
 
 ### Ability to remove/disable limit and clean up triggers — fixed 2026-10-27
 
