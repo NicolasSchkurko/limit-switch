@@ -6,7 +6,6 @@ Log of open project items, ordered from highest to lowest criticality. Each item
 
 | # | Item | Severity | Why it is here |
 | --- | --- | --- | --- |
-| 3 | Address response desynchronization with linked Google Sheets | High | `deleteResponse()` in FormApp does not remove the corresponding row in the linked spreadsheet |
 | 4 | Replace `createMenu` with `createAddonMenu` and protect `onOpen` | High | Mandatory requirement for Google Workspace Marketplace Editor Add-ons; avoids crashes under `AuthMode.NONE` |
 | 8 | Optimize bulk response reading with `form.getResponses().length` | Medium | Loads all responses into memory on every submission, risking execution timeouts and quota exhaustion |
 | 9 | Allow removing or disabling the limit and clean up triggers | Medium | Currently impossible to remove the limit or disable enforcement without uninstalling the add-on |
@@ -21,21 +20,6 @@ Log of open project items, ordered from highest to lowest criticality. Each item
 | 7 | Publish the add-on on the Google Workspace Marketplace | Low | Currently only exists in the Apps Script project: nobody else can install it (confirmed total cost: $0 USD) |
 
 ---
-
-## 3. Response desynchronization with linked Google Sheets upon deleting excess submissions
-
-**Status:** open  
-**Severity:** high  
-**Files:** `src/triggers.js`, `README.md`
-
-### What is happening
-
-`FormApp.Form.deleteResponse(responseId)` only removes the submission from Google Forms' internal store. If the form owner has linked the form to a Google Sheet, **the row in the Sheet is NOT deleted**. The spreadsheet will permanently contain more rows than the configured limit, creating a silent desynchronization between the form count and the spreadsheet.
-
-### Proposal
-
-1. Explicitly document this native platform behavior in `README.md` and in the add-on policies.
-2. Evaluate whether to detect linked spreadsheets (or warn the user in the UI), and if feasible, assess scopes to clean up the row or mark it as rejected.
 
 ## 4. Replace `createMenu` with `createAddonMenu` and guard `onOpen` for Marketplace
 
@@ -228,6 +212,10 @@ Confirmed cost breakdown:
 ---
 
 ## Fixed
+
+### Response desynchronization with linked Google Sheets documented — fixed 2026-10-27
+
+`README.md` (former item 3): Documented the Google Forms / Sheets platform limitation in the technical notes of `README.md`. Explains that `deleteResponse()` in Apps Script only operates on the form's internal response store and does not remove the corresponding row in a linked spreadsheet, detailing how the user can safely handle the extra row manually without impacting the add-on's behavior.
 
 ### Accidental form reopening in `setClosedMessage` — fixed 2026-10-27
 

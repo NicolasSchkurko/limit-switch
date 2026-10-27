@@ -2,7 +2,7 @@
 
 A free Google Forms add-on to limit the number of responses a form will accept. Once the limit is reached, the form is closed automatically and a custom message is displayed to visitors.
 
-> Formerly published as "Form Limiter". Currently being prepared for the Google Workspace Marketplace.
+> Currently being prepared for the Google Workspace Marketplace.
 
 ### Features
 - **Set Response Limits:** easily set a maximum number of responses for your form.
@@ -31,7 +31,11 @@ This section documents some specific behaviors and design choices.
 - **Solution:** To work around this, the function temporarily re-opens the form, applies the new message, and then immediately closes it again. This is almost invisible to the user and ensures the message can be updated at any time.
 
 **Preventing Race Conditions**
-- The add-on uses Google's `LockService` to serialize settings changes and submissions. If two people submit at the same time near the limit, the excess response is deleted: the form never accepts more than the configured number of responses.
+- The add-on uses Google’s LockService to serialize settings changes and submissions. Simultaneous submissions near the limit are resolved by chronological order of arrival: responses within the quota are always kept, and only genuine excess submissions are deleted.
+
+**Linked Google Sheets — Known Limitation**
+- If your form is connected to a Google Sheet (via _Responses → Link to Sheets_), be aware that deleteResponse() in Google Apps Script **only removes the response from the form’s internal store**. The corresponding row in the linked spreadsheet is **not deleted automatically**. This is a platform-level constraint of the Google Forms / Sheets API.
+- In practice this means: if a submission arrives over the limit and is rejected by the add-on, the form’s response count will be correct, but the linked sheet may contain one extra row for that rejected submission. You can safely delete that row manually from the spreadsheet without affecting the add-on’s behavior.
 
 ### Development
 The source lives in `src/`; the add-on manifest is `src/appsscript.json`.

@@ -6,7 +6,6 @@ Registro de los puntos abiertos del proyecto, ordenados de mayor a menor critici
 
 | # | Punto | Severidad | Por qué está acá |
 | --- | --- | --- | --- |
-| 3 | Tratar la desincronización de respuestas con Google Sheets vinculado | Alta | `deleteResponse()` en FormApp no elimina la fila en la hoja de cálculo asociada |
 | 4 | Reemplazar `createMenu` por `createAddonMenu` y proteger `onOpen` | Alta | Requisito estricto de Marketplace para Editor Add-ons; previene errores en `AuthMode.NONE` |
 | 8 | Optimizar la lectura masiva de `form.getResponses().length` | Media | Carga todas las respuestas en memoria en cada envío, arriesgando timeouts y superación de cuotas |
 | 9 | Permitir remover o deshabilitar el límite y limpiar triggers | Media | Hoy no es posible borrar el límite ni desactivar la verificación sin desinstalar el add-on |
@@ -21,21 +20,6 @@ Registro de los puntos abiertos del proyecto, ordenados de mayor a menor critici
 | 7 | Publicar el add-on en el Google Workspace Marketplace | Baja | Hoy solo existe en el proyecto de Apps Script: no hay forma de que otra persona lo instale (costo confirmado: $0 USD) |
 
 ---
-
-## 3. Desincronización con Google Sheets vinculado al eliminar excedentes
-
-**Estado:** abierto  
-**Severidad:** alta  
-**Archivos:** `src/triggers.js`, `README.md`
-
-### Qué pasa
-
-`FormApp.Form.deleteResponse(responseId)` únicamente elimina la respuesta del almacén interno de Google Forms. Si el usuario vinculó el formulario a una hoja de cálculo (Google Sheet), **la fila en el Sheet no se elimina**. La planilla contendrá más respuestas que el límite configurado, desincronizándose silenciosamente de las respuestas del formulario.
-
-### Propuesta
-
-1. Documentar explícitamente en el `README.md` y en las políticas del add-on este comportamiento nativo de la plataforma Forms / Sheets.
-2. Evaluar si se extiende la funcionalidad para detectar si hay un Sheet vinculado (o advertir al usuario en la UI) y, en caso afirmativo, evaluar scopes adicionales para limpiar la fila o marcarla como cancelada.
 
 ## 4. Reemplazar `createMenu` por `createAddonMenu` y proteger `onOpen` para Marketplace
 
@@ -117,7 +101,7 @@ Eliminar la inicialización global en el tope de los archivos y llamar a `Proper
 
 Decidir explícitamente entre documentar ambos comportamientos o automatizarlos (por ejemplo, reabrir el formulario al detectar un límite mayor al conteo actual). En cualquiera de los dos casos, dejarlo asentado en el README.
 
-## 12. Identidad de marca para el listado
+## 12. Definir la identidad definitiva para el listado
 
 **Estado:** abierto  
 **Severidad:** media
@@ -228,6 +212,10 @@ Confirmado el desglose de costos:
 ---
 
 ## Corregidos
+
+### Desincronización de respuestas con Google Sheets documentada — corregido 2026-10-27
+
+`README.md` (antiguo ítem 3): Documentada la limitación de plataforma de Google Forms / Sheets en las notas técnicas del `README.md`. Se explica que `deleteResponse()` en Apps Script solo actúa sobre el almacén interno del formulario y no borra la fila en la hoja de cálculo vinculada, indicando que el usuario puede eliminar manualmente dicha fila sobrante sin afectar el funcionamiento del add-on.
 
 ### Reapertura accidental del formulario en `setClosedMessage` — corregido 2026-10-27
 
