@@ -6,7 +6,6 @@ Log of open project items, ordered from highest to lowest criticality. Each item
 
 | # | Item | Severity | Why it is here |
 | --- | --- | --- | --- |
-| 4 | Replace `createMenu` with `createAddonMenu` and protect `onOpen` | High | Mandatory requirement for Google Workspace Marketplace Editor Add-ons; avoids crashes under `AuthMode.NONE` |
 | 8 | Optimize bulk response reading with `form.getResponses().length` | Medium | Loads all responses into memory on every submission, risking execution timeouts and quota exhaustion |
 | 9 | Allow removing or disabling the limit and clean up triggers | Medium | Currently impossible to remove the limit or disable enforcement without uninstalling the add-on |
 | 10 | Eliminate service calls from the global script scope | Medium | Declaring `PropertiesService` at top-level across multiple files causes V8 collisions and failures in unauthorized contexts |
@@ -20,28 +19,6 @@ Log of open project items, ordered from highest to lowest criticality. Each item
 | 7 | Publish the add-on on the Google Workspace Marketplace | Low | Currently only exists in the Apps Script project: nobody else can install it (confirmed total cost: $0 USD) |
 
 ---
-
-## 4. Replace `createMenu` with `createAddonMenu` and guard `onOpen` for Marketplace
-
-**Status:** open  
-**Severity:** high  
-**Files:** `src/main.js`
-
-### What is happening
-
-1. In `onOpen(e)`, `FormApp.getUi().createMenu('Limit-Switch')` is used. Google Workspace Marketplace strictly mandates using `FormApp.getUi().createAddonMenu()` for published Editor Add-ons. Menus created via `createMenu()` appear orphaned or fail to group under the Forms add-on menu in production.
-2. `e.authMode` is not evaluated. When a form is opened for the first time without prior authorization (`ScriptApp.AuthMode.NONE`), any unguarded calls to authorized services will throw an exception, preventing the menu from rendering.
-
-### Proposal
-
-Update `onOpen(e)` to use `createAddonMenu()` and guard executions according to authorization modes:
-```javascript
-function onOpen(e) {
-  var menu = FormApp.getUi().createAddonMenu();
-  menu.addItem('⚙️ Configure Limiter', 'showLimitDialog');
-  menu.addToUi();
-}
-```
 
 ## 8. Optimize bulk reading with `form.getResponses().length`
 
@@ -213,9 +190,13 @@ Confirmed cost breakdown:
 
 ## Fixed
 
+### Use `createAddonMenu()` for Marketplace — fixed 2026-10-27
+
+`src/main.js` (former item 4): Replaced `FormApp.getUi().createMenu('Limit-Switch')` with `FormApp.getUi().createAddonMenu()`. This ensures standard integration under the Google Forms Add-ons menu (puzzle piece icon) and satisfies Google Workspace Marketplace's strict requirement for published Editor Add-ons.
+
 ### Response desynchronization with linked Google Sheets documented — fixed 2026-10-27
 
-`README.md` (former item 3): Documented the Google Forms / Sheets platform limitation in the technical notes of `README.md`. Explains that `deleteResponse()` in Apps Script only operates on the form's internal response store and does not remove the corresponding row in a linked spreadsheet, detailing how the user can safely handle the extra row manually without impacting the add-on's behavior.
+`README.md` (former item 3): Documented the Google Forms / Sheets platform limitation in the technical notes of `README.md`. Explains that `deleteResponse()` in Apps Script only operates on the form's internal response store and does not remove the corresponding row in a linked spreadsheet, detailing how the user can safely delete the extra row manually without impacting the add-on's behavior.
 
 ### Accidental form reopening in `setClosedMessage` — fixed 2026-10-27
 

@@ -6,7 +6,6 @@ Registro de los puntos abiertos del proyecto, ordenados de mayor a menor critici
 
 | # | Punto | Severidad | Por qué está acá |
 | --- | --- | --- | --- |
-| 4 | Reemplazar `createMenu` por `createAddonMenu` y proteger `onOpen` | Alta | Requisito estricto de Marketplace para Editor Add-ons; previene errores en `AuthMode.NONE` |
 | 8 | Optimizar la lectura masiva de `form.getResponses().length` | Media | Carga todas las respuestas en memoria en cada envío, arriesgando timeouts y superación de cuotas |
 | 9 | Permitir remover o deshabilitar el límite y limpiar triggers | Media | Hoy no es posible borrar el límite ni desactivar la verificación sin desinstalar el add-on |
 | 10 | Eliminar llamadas a servicios en el ámbito global del script | Media | Declarar `PropertiesService` en la raíz de múltiples archivos genera colisiones y fallos en contextos no autenticados |
@@ -20,28 +19,6 @@ Registro de los puntos abiertos del proyecto, ordenados de mayor a menor critici
 | 7 | Publicar el add-on en el Google Workspace Marketplace | Baja | Hoy solo existe en el proyecto de Apps Script: no hay forma de que otra persona lo instale (costo confirmado: $0 USD) |
 
 ---
-
-## 4. Reemplazar `createMenu` por `createAddonMenu` y proteger `onOpen` para Marketplace
-
-**Estado:** abierto  
-**Severidad:** alta  
-**Archivos:** `src/main.js`
-
-### Qué pasa
-
-1. En `onOpen(e)`, se usa `FormApp.getUi().createMenu('Limit-Switch')`. Google exige para Editor Add-ons publicados en Google Workspace Marketplace el uso obligatorio de `FormApp.getUi().createAddonMenu()`. Los menús creados con `createMenu()` quedan huérfanos o no se agrupan bajo el menú de complementos de Forms.
-2. No se evalúa `e.authMode`. Al abrirse un formulario por primera vez en modo no autenticado (`ScriptApp.AuthMode.NONE`), cualquier interacción no protegida con servicios de Google puede provocar que el menú no aparezca.
-
-### Propuesta
-
-Actualizar `onOpen(e)` para utilizar `createAddonMenu()` y acondicionar la apertura respetando los modos de autorización:
-```javascript
-function onOpen(e) {
-  var menu = FormApp.getUi().createAddonMenu();
-  menu.addItem('⚙️ Configure Limiter', 'showLimitDialog');
-  menu.addToUi();
-}
-```
 
 ## 8. Optimización de lectura masiva con `form.getResponses().length`
 
@@ -212,6 +189,10 @@ Confirmado el desglose de costos:
 ---
 
 ## Corregidos
+
+### Uso de `createAddonMenu()` para Marketplace — corregido 2026-10-27
+
+`src/main.js` (antiguo ítem 4): Se reemplazó `FormApp.getUi().createMenu('Limit-Switch')` por `FormApp.getUi().createAddonMenu()`. Esto garantiza la integración estándar en el menú de complementos de Google Forms (ícono de pieza de rompecabezas) y cumple con el requisito estricto de Google Workspace Marketplace para Editor Add-ons.
 
 ### Desincronización de respuestas con Google Sheets documentada — corregido 2026-10-27
 
