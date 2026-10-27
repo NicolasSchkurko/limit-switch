@@ -33,6 +33,11 @@ This section documents some specific behaviors and design choices.
 **Preventing Race Conditions**
 - The add-on uses Google’s LockService to serialize settings changes and submissions. Simultaneous submissions near the limit are resolved by chronological order of arrival: responses within the quota are always kept, and only genuine excess submissions are deleted.
 
+**Dynamic Limit Adjustments and Form Lifecycle**
+- **Raising the limit:** If the form was previously closed because it reached its limit, setting a higher limit automatically reopens the form (`form.setAcceptingResponses(true)`) so visitors can immediately submit responses without requiring manual intervention in Google Forms settings.
+- **Lowering the limit:** If the limit is set to or below the current number of responses, the add-on immediately closes the form (`form.setAcceptingResponses(false)`). This guarantees that new respondents do not waste time filling out a form that would discard their submissions.
+- **Removing the limit:** Setting an empty value, `0`, or clicking "Remove Limit" clears the limit and cleans up background triggers.
+
 **Linked Google Sheets — Known Limitation**
 - If your form is connected to a Google Sheet (via _Responses → Link to Sheets_), be aware that deleteResponse() in Google Apps Script **only removes the response from the form’s internal store**. The corresponding row in the linked spreadsheet is **not deleted automatically**. This is a platform-level constraint of the Google Forms / Sheets API.
 - In practice this means: if a submission arrives over the limit and is rejected by the add-on, the form’s response count will be correct, but the linked sheet may contain one extra row for that rejected submission. You can safely delete that row manually from the spreadsheet without affecting the add-on’s behavior.

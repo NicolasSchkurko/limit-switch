@@ -6,7 +6,6 @@ Registro de los puntos abiertos del proyecto, ordenados de mayor a menor critici
 
 | # | Punto | Severidad | Por qué está acá |
 | --- | --- | --- | --- |
-| 11 | Definir el comportamiento al modificar el límite con el formulario cerrado | Media | Subir el límite no reabre el formulario; bajarlo por debajo del conteo actual no lo cierra hasta el próximo envío |
 | 12 | Definir la identidad definitiva para el listado | Media | Los assets actuales provienen de la etapa "Limiter"; el Marketplace requiere ícono, banner y capturas |
 | 13 | Mejorar UX/UI del diálogo de configuración | Baja | Falta indicador de estado (abierto/cerrado), guardado unificado, validación local, soporte de Enter y logo offline |
 | 14 | Evaluar la internacionalización de la interfaz | Baja | La UI está únicamente en inglés; `useLocaleFromApp` está declarado pero no hay traducciones |
@@ -17,19 +16,6 @@ Registro de los puntos abiertos del proyecto, ordenados de mayor a menor critici
 
 ---
 
-
-## 11. Comportamiento al modificar el límite con el formulario cerrado
-
-**Estado:** abierto (decisión de diseño pendiente)  
-**Severidad:** media  
-**Archivos:** `src/actions.js`
-
-- Subir el límite con el formulario cerrado por el add-on no lo reabre: queda cerrado hasta que se habilite manualmente.
-- Bajar el límite por debajo de la cantidad de respuestas actuales no cierra el formulario hasta el próximo envío.
-
-### Propuesta
-
-Decidir explícitamente entre documentar ambos comportamientos o automatizarlos (por ejemplo, reabrir el formulario al detectar un límite mayor al conteo actual). En cualquiera de los dos casos, dejarlo asentado en el README.
 
 ## 12. Definir la identidad definitiva para el listado
 
@@ -142,6 +128,10 @@ Confirmado el desglose de costos:
 ---
 
 ## Corregidos
+
+### Gestión automática del ciclo de vida del formulario al ajustar límites — corregido 2026-10-27
+
+`src/actions.js`, `README.md` (antiguo ítem 11): Se automatizó la apertura y cierre del formulario en `setMaxResponses()`. Si se sube el límite por encima del conteo actual en un formulario cerrado, este se reabre automáticamente (`form.setAcceptingResponses(true)`). Si se reduce el límite a un valor menor o igual a las respuestas ya recibidas, el formulario se cierra de inmediato (`form.setAcceptingResponses(false)`), evitando que nuevos encuestados completen el formulario para luego sufrir el descarte de su envío. El comportamiento quedó documentado en las notas técnicas del `README.md`.
 
 ### Eliminación de llamadas globales a servicios y unificación de locks — corregido 2026-10-27
 

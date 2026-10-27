@@ -62,6 +62,7 @@ function clearLimitInternal() {
 
 /**
  * Sets the maximum number of allowed responses, or removes the limit if empty or zero.
+ * Automatically synchronizes the form's open/closed state with available capacity.
  * @param {string} limit The maximum number of responses as a string.
  * @returns {string} A confirmation or error message.
  */
@@ -77,9 +78,28 @@ function setMaxResponses(limit) {
     }
 
     if (!isNaN(limitNumber) && limitNumber > 0) {
+      var form = FormApp.getActiveForm();
       getProperties().setProperty('maxResponses', limitNumber.toString());
-      getAndSyncResponseCount();
+      var currentCount = getAndSyncResponseCount(form);
       setTrigger();
+
+      var isAccepting = form.isAcceptingResponses();
+
+      // Case 1: Limit already reached or exceeded -> close form if currently open.
+      if (currentCount >= limitNumber) {
+        if (isAccepting) {
+          form.setAcceptingResponses(false);
+          return 'Limit set to ' + limitNumber + ' responses. Form is now closed (already has ' + currentCount + ' responses).';
+        }
+        return 'Limit set to ' + limitNumber + ' responses. Form remains closed (limit reached).';
+      }
+
+      // Case 2: Available capacity exists -> reopen form if it was closed.
+      if (!isAccepting) {
+        form.setAcceptingResponses(true);
+        return 'Limit set to ' + limitNumber + ' responses. Form has been reopened.';
+      }
+
       return 'Limit set to ' + limitNumber + ' responses.';
     }
 

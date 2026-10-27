@@ -6,7 +6,6 @@ Log of open project items, ordered from highest to lowest criticality. Each item
 
 | # | Item | Severity | Why it is here |
 | --- | --- | --- | --- |
-| 11 | Decide behavior when modifying the limit while the form is closed | Medium | Raising the limit does not reopen the form; lowering it below current count does not close it until the next submission |
 | 12 | Define final brand assets for the listing | Medium | Existing assets belong to the "Limiter" stage; the Marketplace requires a 128×128 icon, banner, and screenshots |
 | 13 | Improve settings dialog UX/UI (`index.html`) | Low | Missing open/closed status badge, unified save workflow, client-side input validation, Enter key support, and offline logo |
 | 14 | Evaluate UI internationalization (i18n) | Low | UI is currently English-only; `useLocaleFromApp` is declared but there are no translations |
@@ -17,19 +16,6 @@ Log of open project items, ordered from highest to lowest criticality. Each item
 
 ---
 
-
-## 11. Behavior when modifying the limit while the form is closed
-
-**Status:** open (design decision pending)  
-**Severity:** medium  
-**Files:** `src/actions.js`
-
-- Raising the limit while the form is closed does not reopen it: it stays closed until manually enabled in Google Forms settings.
-- Lowering the limit below the current response count does not close the form until the next submission arrives.
-
-### Proposal
-
-Explicitly decide whether to document both behaviors or automate them (for example, automatically reopening the form when a limit greater than the current count is set). Document the final decision in `README.md`.
 
 ## 12. Brand assets for the listing
 
@@ -142,6 +128,10 @@ Confirmed cost breakdown:
 ---
 
 ## Fixed
+
+### Automated form lifecycle management upon limit adjustments — fixed 2026-10-27
+
+`src/actions.js`, `README.md` (former item 11): Automated the form's open/closed state in `setMaxResponses()`. Raising the limit above the current response count on a closed form now automatically reopens it (`form.setAcceptingResponses(true)`). Lowering the limit to or below the current number of responses immediately closes the form (`form.setAcceptingResponses(false)`), preventing incoming respondents from completing forms only to have their submissions rejected. Documented in the technical notes of `README.md`.
 
 ### Elimination of global service calls and unified lock management — fixed 2026-10-27
 
