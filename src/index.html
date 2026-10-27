@@ -40,12 +40,26 @@
       object-fit: contain; 
     }
     .info-bar { 
-      text-align: center;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       background-color: #f1f3f5;
-      padding: 0.75rem;
+      padding: 0.6rem 0.85rem;
       border-radius: 0.375rem;
       margin-bottom: 1.25rem;
       font-size: 0.9rem;
+    }
+    .btn-sync {
+      width: auto;
+      margin: 0;
+      padding: 0.35rem 0.75rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      background-color: #6c757d;
+      border-radius: 0.25rem;
+    }
+    .btn-sync:hover {
+      background-color: #5a6268;
     }
     label {
       font-size: 1rem;
@@ -131,8 +145,11 @@
     <img class="logo-png" src="https://raw.githubusercontent.com/NicolasSchkurko/limit-switch/refs/heads/main/misc/LimiterUiLogo.png" alt="Logo">
 
     <div class="info-bar">
-      <strong>Current responses:</strong> 
-      <span class="current-value"><?= currentResponses ?></span>
+      <span>
+        <strong>Current responses:</strong> 
+        <span class="current-value" id="currentResponseCount"><?= currentResponses ?></span>
+      </span>
+      <button id="syncBtn" class="btn-sync" onclick="syncCount()" title="Recalibrate response count from Google Forms">🔄 Sync</button>
     </div>
 
     <div id="status"></div>
@@ -193,6 +210,23 @@
       });
     }
 
+    function syncCount() {
+      var syncBtn = document.getElementById("syncBtn");
+      setButtonsDisabled(true);
+      syncBtn.textContent = "Syncing...";
+      google.script.run
+        .withSuccessHandler(function(count) {
+          document.getElementById("currentResponseCount").textContent = count;
+          syncBtn.textContent = "🔄 Sync";
+          handleSuccess("Responses synced: " + count);
+        })
+        .withFailureHandler(function(err) {
+          syncBtn.textContent = "🔄 Sync";
+          handleFailure(err);
+        })
+        .syncResponseCount();
+    }
+
     function setLimit() {
       setButtonsDisabled(true);
       var limit = document.getElementById("limit").value;
@@ -234,4 +268,3 @@
   </script>
 </body>
 </html>
-

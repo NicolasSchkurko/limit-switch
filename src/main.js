@@ -25,7 +25,7 @@ function onInstall(e) {
 function showLimitDialog() {
   var form = FormApp.getActiveForm();
 
-  var currentResponseCount = form.getResponses().length;
+  var currentResponseCount = getAndSyncResponseCount(form);
   var maxResponses = formProperties.getProperty('maxResponses') || "Not set";
   var confirmationMessage = form.getConfirmationMessage() || "Your response has been recorded.";
   var closedMessage = form.getCustomClosedFormMessage() || "This form is no longer accepting responses.";

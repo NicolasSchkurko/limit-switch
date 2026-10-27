@@ -1,4 +1,5 @@
 var formProperties = PropertiesService.getDocumentProperties();
+var SAFETY_MARGIN = 10;
 
 /**
  * Checks if the response limit has been reached every time the form is submitted.
@@ -14,6 +15,21 @@ function checkResponseLimit(e) {
     var maxResponses = parseInt(formProperties.getProperty('maxResponses') || '0', 10);
     if (maxResponses <= 0) return;
 
+    // Fast-path: Check estimated response count.
+    var cachedCount = parseInt(formProperties.getProperty('responseCount') || '-1', 10);
+
+    // If cache was never initialized, sync live count right now using the shared helper.
+    if (cachedCount === -1) {
+      cachedCount = getAndSyncResponseCount();
+      if (cachedCount < (maxResponses - SAFETY_MARGIN)) {
+        return;
+      }
+    } else if ((cachedCount + 1) < (maxResponses - SAFETY_MARGIN)) {
+      setCachedResponseCount(cachedCount + 1);
+      return;
+    }
+
+    // Critical zone: Fetch live responses from Google Forms to ensure precise ordering and counts.
     var form = FormApp.getActiveForm();
     var currentResponseId = e.response.getId();
 
@@ -28,18 +44,23 @@ function checkResponseLimit(e) {
       }
     }
 
-    // If the response is not found (e.g. already deleted), exit safely.
-    if (responseIndex === -1) return;
+    // If the response is not found (e.g. already deleted), calibrate cache and exit safely.
+    if (responseIndex === -1) {
+      setCachedResponseCount(totalCount);
+      return;
+    }
 
     if (responseIndex >= maxResponses) {
       if (form.isAcceptingResponses()) {
         form.setAcceptingResponses(false);
       }
       form.deleteResponse(currentResponseId);
+      setCachedResponseCount(totalCount - 1);
     } else {
       if (totalCount >= maxResponses && form.isAcceptingResponses()) {
         form.setAcceptingResponses(false);
       }
+      setCachedResponseCount(totalCount);
     }
   } finally {
     lock.releaseLock(); // Release the lock

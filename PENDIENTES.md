@@ -6,9 +6,8 @@ Registro de los puntos abiertos del proyecto, ordenados de mayor a menor critici
 
 | # | Punto | Severidad | Por qué está acá |
 | --- | --- | --- | --- |
-| 8 | Optimizar la lectura masiva de `form.getResponses().length` | Media | Carga todas las respuestas en memoria en cada envío, arriesgando timeouts y superación de cuotas |
 | 9 | Permitir remover o deshabilitar el límite y limpiar triggers | Media | Hoy no es posible borrar el límite ni desactivar la verificación sin desinstalar el add-on |
-| 10 | Eliminar llamadas a servicios en el ámbito global del script | Media | Declarar `PropertiesService` en la raíz de múltiples archivos genera colisiones y fallos en contextos no autenticados |
+| 10 | Eliminar llamadas a servicios en el ámbito global y unificar locks | Media | Declarar `PropertiesService` en la raíz genera colisiones en V8; el boilerplate de `LockService` se repite en 4 funciones |
 | 11 | Definir el comportamiento al modificar el límite con el formulario cerrado | Media | Subir el límite no reabre el formulario; bajarlo por debajo del conteo actual no lo cierra hasta el próximo envío |
 | 12 | Definir la identidad definitiva para el listado | Media | Los assets actuales provienen de la etapa "Limiter"; el Marketplace requiere ícono, banner y capturas |
 | 13 | Mejorar UX/UI del diálogo de configuración | Baja | Falta indicador de estado (abierto/cerrado), guardado unificado, validación local, soporte de Enter y logo offline |
@@ -19,21 +18,6 @@ Registro de los puntos abiertos del proyecto, ordenados de mayor a menor critici
 | 7 | Publicar el add-on en el Google Workspace Marketplace | Baja | Hoy solo existe en el proyecto de Apps Script: no hay forma de que otra persona lo instale (costo confirmado: $0 USD) |
 
 ---
-
-## 8. Optimización de lectura masiva con `form.getResponses().length`
-
-**Estado:** abierto  
-**Severidad:** media  
-**Archivos:** `src/triggers.js`, `src/main.js`
-
-### Qué pasa
-
-En cada envío, `form.getResponses().length` descarga en memoria el arreglo completo de objetos `FormResponse`. En formularios con alto volumen (cientos o miles de respuestas), esta operación tarda varios segundos, arriesgando límites de memoria y timeouts en `LockService.waitLock(30000)` ante envíos rápidos consecutivos.
-
-### Propuesta
-
-1. Evaluar si es viable mantener un contador en `DocumentProperties` actualizado de forma incremental o si el recálculo debe hacerse de forma más liviana.
-2. Analizar el manejo de errores ante expiración del candado (timeout de `waitLock`) para registrar la incidencia sin interrumpir la experiencia del usuario.
 
 ## 9. Permitir remover o deshabilitar el límite y limpiar triggers
 
@@ -51,7 +35,7 @@ En cada envío, `form.getResponses().length` descarga en memoria el arreglo comp
 1. Permitir un valor vacío o un botón "Remove Limit / Disable" en la UI.
 2. En `actions.js`, si el límite se elimina: borrar la propiedad `maxResponses` y eliminar el trigger asociado de `ScriptApp.getProjectTriggers()` para liberar cuota de ejecución.
 
-## 10. Eliminación de llamadas a servicios en el ámbito global del script
+## 10. Eliminación de llamadas a servicios en el ámbito global y unificación de locks
 
 **Estado:** abierto  
 **Severidad:** media  
@@ -59,11 +43,13 @@ En cada envío, `form.getResponses().length` descarga en memoria el arreglo comp
 
 ### Qué pasa
 
-`var formProperties = PropertiesService.getDocumentProperties();` se ejecuta en la raíz global de tres archivos distintos. Esto genera colisiones en V8 y puede fallar prematuramente en contextos donde los servicios aún no cuentan con autorización (por ejemplo, durante la evaluación previa de triggers simples).
+1. `var formProperties = PropertiesService.getDocumentProperties();` se ejecuta en la raíz global de tres archivos distintos. Esto genera colisiones en V8 y puede fallar prematuramente en contextos donde los servicios aún no cuentan con autorización (por ejemplo, durante la evaluación previa de triggers simples).
+2. En `src/actions.js`, las 4 funciones públicas (`setMaxResponses`, `setConfirmationMessage`, `setClosedMessage`, `syncResponseCount`) repiten exactamente el mismo bloque de ~15 líneas para solicitar el lock (`LockService.getScriptLock()`), esperar el timeout, capturar errores de cuentas múltiples (`PERMISSION_DENIED`) y liberar el lock en el bloque `finally`.
 
 ### Propuesta
 
-Eliminar la inicialización global en el tope de los archivos y llamar a `PropertiesService.getDocumentProperties()` de forma perezosa dentro de las funciones que realmente lo requieran.
+1. **Lazy loading de `PropertiesService`:** Eliminar la inicialización global en el tope de los archivos y crear una función auxiliar `getProperties()` (o acceder bajo demanda) dentro de las funciones que realmente lo requieran.
+2. **Wrapper reutilizable `withScriptLock`:** Implementar una función de orden superior `withScriptLock(actionFn, timeoutMs)` en `actions.js` que encapsule la adquisición del lock, el manejo centralizado de excepciones (`PERMISSION_DENIED`) y la liberación garantizada en `finally`.
 
 ## 11. Comportamiento al modificar el límite con el formulario cerrado
 
@@ -189,6 +175,10 @@ Confirmado el desglose de costos:
 ---
 
 ## Corregidos
+
+### Optimización de lectura masiva (estrategia de Zona Crítica con margen de seguridad) — corregido 2026-10-27
+
+`src/triggers.js`, `src/actions.js`, `src/main.js` (antiguo ítem 8): Implementado un camino rápido (fast-path) con contador estimado en `DocumentProperties`. Cuando el número de respuestas está a más de 10 unidades de distancia del límite (`SAFETY_MARGIN = 10`), el trigger solo incrementa el contador estimado y retorna en ~30 ms sin descargar todas las respuestas en memoria. Al ingresar a la "Zona Crítica" (a 10 o menos del cupo), se descarga la lista real en vivo (`form.getResponses()`) para recalibrar el contador y aplicar el algoritmo de orden cronológico sin riesgo de cierres erróneos.
 
 ### Uso de `createAddonMenu()` para Marketplace — corregido 2026-10-27
 
