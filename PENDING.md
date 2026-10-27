@@ -2,112 +2,283 @@
 
 > Spanish version: [PENDIENTES.md](PENDIENTES.md)
 
-Log of the project's open items, ordered from most to least urgent. Each item states its status, severity, affected files, and a concrete proposal. IDs are stable and never renumbered; resolved items move to the [Fixed](#fixed) section with their date and the reason for the change.
+Log of open project items, ordered from highest to lowest criticality. Each item states its status, severity, affected files, and a concrete proposal. Resolved items move to the [Fixed](#fixed) section with their date and the reason for the change.
 
-| # | Item | Why it is here |
-| --- | --- | --- |
-| 1 | Publish the add-on on the Google Workspace Marketplace | It only exists in the Apps Script project: there is no way for anyone else to install it |
-| 2 | Publish the URLs Google requires (homepage, privacy policy, terms) | The listing and the OAuth verification require public URLs; the documents currently live only inside the repository |
-| 3 | Verify per-form storage in a real environment | The 2026-10-15 fix has not been tested yet with two accounts and two forms at the same time |
-| 4 | Decide how limit changes behave while the form is closed | Raising the limit does not reopen the form; lowering it below the current count does not close it until the next submission |
-| 5 | Define the final brand assets for the listing | Current assets belong to the "Limiter" stage; the Marketplace requires an icon, banner and screenshots |
-| 6 | Evaluate UI internationalization | The UI is English-only; `useLocaleFromApp` is declared but there are no translations |
-| 7 | Define the code testing strategy | There are no automated tests; only the manual checklist in the README |
-| 8 | Create the v1.0.0 release | No tags or release notes exist; it should be done when the rebrand branch is merged |
+| # | Item | Severity | Why it is here |
+| --- | --- | --- | --- |
+| 2 | Prevent accidental permanent form reopening in `setClosedMessage` | High | If `setCustomClosedFormMessage` fails after temporarily reopening the form, the form remains publicly open indefinitely |
+| 3 | Address response desynchronization with linked Google Sheets | High | `deleteResponse()` in FormApp does not remove the corresponding row in the linked spreadsheet |
+| 4 | Replace `createMenu` with `createAddonMenu` and protect `onOpen` | High | Mandatory requirement for Google Workspace Marketplace Editor Add-ons; avoids unauthenticated crashes under `AuthMode.NONE` |
+| 5 | Publish URLs and legal compliance on custom domain (Cloudflare) | High | Required for Google OAuth verification: domain verified via Search Console, Limited Use disclosure, and data deletion clause |
+| 6 | Verify per-form storage in a real-world environment | High | The 2026-10-15 fix has not been verified yet with two separate accounts and two forms simultaneously |
+| 7 | Publish the add-on on the Google Workspace Marketplace | High | Currently only exists in the Apps Script project: nobody else can install it (confirmed total cost: $0 USD) |
+| 8 | Optimize bulk response reading with `form.getResponses().length` | Medium | Loads all responses into memory on every submission, risking execution timeouts and quota exhaustion |
+| 9 | Allow removing or disabling the limit and clean up triggers | Medium | Currently impossible to remove the limit or disable enforcement without uninstalling the add-on |
+| 10 | Eliminate service calls from the global script scope | Medium | Declaring `PropertiesService` at top-level across multiple files causes V8 collisions and failures in unauthorized contexts |
+| 11 | Decide behavior when modifying the limit while the form is closed | Medium | Raising the limit does not reopen the form; lowering it below current count does not close it until the next submission |
+| 12 | Define final brand assets for the listing | Medium | Existing assets belong to the "Limiter" stage; the Marketplace requires a 128×128 icon, banner, and screenshots |
+| 13 | Improve settings dialog UX/UI (`index.html`) | Low | Missing open/closed status badge, unified save workflow, client-side input validation, Enter key support, and offline logo |
+| 14 | Evaluate UI internationalization (i18n) | Low | UI is currently English-only; `useLocaleFromApp` is declared but there are no translations |
+| 15 | Define code testing strategy | Low | No automated tests exist; only the manual checklist in the README |
+| 16 | Create the v1.0.0 release | Low | No git tags or release notes exist; should be tagged once the rebrand branch is merged |
 
 ---
 
-## 1. Publish the add-on on the Google Workspace Marketplace
+## 2. Risk of permanent form reopening on exception in `setClosedMessage`
 
-**Status:** open
-**Severity:** high
-**Files:** Apps Script project (outside the repository), `src/appsscript.json`
+**Status:** open  
+**Severity:** high  
+**Files:** `src/actions.js`
 
-### What is missing
+### What is happening
 
-The add-on is functional and the code is versioned, but there is no public listing: any installation requires direct access to the Apps Script project.
+In `setClosedMessage(message)`, the form is temporarily reopened (`form.setAcceptingResponses(true)`) to work around a Google Forms API bug that prevents updating the closed-form message while closed. If `form.setCustomClosedFormMessage(message)` throws an exception (due to API quota, invalid characters, or network glitch), execution jumps directly to `catch (e)`, bypassing `form.setAcceptingResponses(false)`. As a result, a form that was supposed to stay closed remains **permanently open to the public**.
 
 ### Proposal
 
-1. Create or link a standard Google Cloud project and configure the OAuth consent screen (external type, testing mode).
-2. Publish an **unlisted** listing through the Workspace Marketplace SDK: install by link for the author and the first users, without Google review (up to 100 test users).
-3. Request public publishing once the above is validated (requires app verification: demo video, scope justification, and the URLs from item 2).
+Guarantee state restoration using a nested `try ... finally` block:
+```javascript
+var wasClosed = !form.isAcceptingResponses();
+if (wasClosed) {
+  form.setAcceptingResponses(true);
+}
+try {
+  form.setCustomClosedFormMessage(message);
+} finally {
+  if (wasClosed) {
+    form.setAcceptingResponses(false);
+  }
+}
+```
 
-## 2. Public URLs required by Google
+## 3. Response desynchronization with linked Google Sheets upon deleting excess submissions
 
-**Status:** open
-**Severity:** high
+**Status:** open  
+**Severity:** high  
+**Files:** `src/triggers.js`, `README.md`
+
+### What is happening
+
+`FormApp.Form.deleteResponse(responseId)` only removes the submission from Google Forms' internal store. If the form owner has linked the form to a Google Sheet, **the row in the Sheet is NOT deleted**. The spreadsheet will permanently contain more rows than the configured limit, creating a silent desynchronization between the form count and the spreadsheet.
+
+### Proposal
+
+1. Explicitly document this native platform behavior in `README.md` and in the add-on policies.
+2. Evaluate whether to detect linked spreadsheets (or warn the user in the UI), and if feasible, assess scopes to clean up the row or mark it as rejected.
+
+## 4. Replace `createMenu` with `createAddonMenu` and guard `onOpen` for Marketplace
+
+**Status:** open  
+**Severity:** high  
+**Files:** `src/main.js`
+
+### What is happening
+
+1. In `onOpen(e)`, `FormApp.getUi().createMenu('Limit-Switch')` is used. Google Workspace Marketplace strictly mandates using `FormApp.getUi().createAddonMenu()` for published Editor Add-ons. Menus created via `createMenu()` appear orphaned or fail to group under the Forms add-on menu in production.
+2. `e.authMode` is not evaluated. When a form is opened for the first time without prior authorization (`ScriptApp.AuthMode.NONE`), any unguarded calls to authorized services will throw an exception, preventing the menu from rendering.
+
+### Proposal
+
+Update `onOpen(e)` to use `createAddonMenu()` and guard executions according to authorization modes:
+```javascript
+function onOpen(e) {
+  var menu = FormApp.getUi().createAddonMenu();
+  menu.addItem('⚙️ Configure Limiter', 'showLimitDialog');
+  menu.addToUi();
+}
+```
+
+## 5. Publish URLs, landing page, and legal compliance on custom domain (Cloudflare)
+
+**Status:** open  
+**Severity:** high  
 **Files:** `docs/Privacy_policy.md`, `docs/Terms_of_service.md`
 
 ### What is missing
 
-The listing and the verification require a homepage, privacy policy and terms reachable via public URL. Today those documents are only readable inside the repository.
+Google OAuth verification requires that the Homepage, Privacy Policy, and Terms of Service be publicly reachable under a **domain verified in Google Search Console**. The documents currently live only in Markdown inside the repository and lack mandatory Google Trust & Safety clauses.
 
-### Proposal
+### Proposal & Key Requirements
 
-Publish them with GitHub Pages from `docs/`: add a landing page and HTML versions of both documents. That is enough for Google; a custom domain is not required.
+1. **Hosting on Cloudflare with a custom domain:**
+   - Deploy the landing page and policy documents via Cloudflare Pages on the author's custom domain.
+   - Add the Google Search Console DNS `TXT` verification record in Cloudflare DNS (verified within seconds, fulfilling Google's domain ownership mandate).
+   - Recommended URL structure:
+     - Homepage / Landing: `https://yourdomain.com/limit-switch` (or subdomain `https://limit-switch.yourdomain.com`).
+     - Privacy Policy: `https://yourdomain.com/limit-switch/privacy`.
+     - Terms of Service: `https://yourdomain.com/limit-switch/terms`.
 
-## 3. Verification of per-form storage
+2. **Mandatory "Limited Use" disclosure in Privacy Policy:**
+   Google Trust & Safety rejects verification requests if the policy does not include the exact compliance statement:
+   > *"Limit-Switch's use and transfer to any other app of information received from Google APIs will adhere to [Google API Services User Data Policy](https://developers.google.com/terms/api-services-user-data-policy), including the Limited Use requirements."*
 
-**Status:** open
-**Severity:** high
+3. **Explicit Data Retention & Deletion section:**
+   Specify that configuration settings are stored solely within the form via `DocumentProperties` and are automatically destroyed when the user uninstalls the add-on or deletes the form from Google Drive.
+
+4. **Identity & Support Email Consistency:**
+   The application name (`Limit-Switch`) and user support email (`schkurkonicolas@gmail.com`) must match across the policy, terms, and Google Cloud OAuth Consent Screen configuration.
+
+5. **Landing Page Requirements:**
+   The homepage must clearly describe the add-on's purpose and contain visible footer links to both the Privacy Policy and Terms of Service.
+
+## 6. Verification of per-form storage in a real-world environment
+
+**Status:** open  
+**Severity:** high  
 **Files:** `src/main.js`, `src/actions.js`, `src/triggers.js`
 
 ### What is missing
 
-The fix (`getDocumentProperties()`) is in the code but has not been deployed or tested under real conditions.
+The fix (`getDocumentProperties()`) is in the code but has not been deployed or tested under real conditions with multi-tenant forms.
 
 ### Proposal
 
-With two Google accounts and two different forms, set different limits and verify that each form keeps its own configuration and closes independently. Record the result before requesting publication.
+Using two Google accounts and two different forms, set different limits and verify that each form retains its own isolated configuration and closes independently. Record the result before submitting for public listing.
 
-## 4. Behavior when the limit changes while the form is closed
+## 7. Publish the add-on on the Google Workspace Marketplace
 
-**Status:** open (pending design decision)
-**Severity:** medium
+**Status:** open  
+**Severity:** high  
+**Files:** Apps Script project (outside repository), `src/appsscript.json`
 
-- Raising the limit while the add-on has closed the form does not reopen it: it stays closed until manually enabled.
-- Lowering the limit below the current response count does not close the form until the next submission.
+### What is missing
+
+The add-on is functional and version-controlled, but has no public listing: installation currently requires direct access to the Apps Script project.
+
+### Publication and Maintenance Costs ($0 USD)
+
+Confirmed cost breakdown:
+- **Developer Registration Fee:** $0 USD (Google Workspace Marketplace does not charge registration or annual fees, unlike Apple or Google Play).
+- **Hosting / Server / Backend:** $0 USD (all logic runs on Google Apps Script under free user quotas).
+- **Google Cloud Platform (GCP):** $0 USD (the GCP project is only used for OAuth Consent and Marketplace SDK setup; no paid resources used).
+- **External Security Audit (CASA):** $0 USD (Limit-Switch only requests `forms.currentonly`, which is sensitive but **not restricted**; review is conducted internally and free of charge by Google).
+- **Support / Policy Hosting:** $0 USD (via Cloudflare Pages free tier).
+- **Total Cost:** **$0 USD**.
 
 ### Proposal
 
-Decide explicitly between documenting both behaviors or automating them (for example, reopening the form when a limit higher than the current count is detected). Either way, record the decision in the README.
+1. Create or link a standard Google Cloud project and configure the OAuth consent screen (external type, testing mode).
+2. Publish an **unlisted** listing via Workspace Marketplace SDK: allows direct link installation for the author and first users without Google review (up to 100 test users).
+3. Request public publication once validated (requires app verification: demo video, scope justification, and the URLs/legal requirements from item 5).
 
-## 5. Brand assets for the listing
+## 8. Optimize bulk reading with `form.getResponses().length`
 
-**Status:** open
+**Status:** open  
+**Severity:** medium  
+**Files:** `src/triggers.js`, `src/main.js`
+
+### What is happening
+
+On every submission, `form.getResponses().length` downloads the entire array of `FormResponse` objects into memory. On forms with high submission volumes, this takes several seconds, risking memory limits and lock acquisition timeouts (`LockService.waitLock(30000)`) during rapid bursts.
+
+### Proposal
+
+1. Evaluate storing an incremental counter in `DocumentProperties` or lightweight counting mechanisms.
+2. Implement proper error handling when `waitLock` times out to record the issue gracefully without disrupting the user experience.
+
+## 9. Allow removing or disabling the limit and clean up triggers
+
+**Status:** open  
+**Severity:** medium  
+**Files:** `src/actions.js`, `src/triggers.js`, `src/index.html`
+
+### What is happening
+
+1. `setMaxResponses(limit)` rejects empty strings or `0`, throwing an error (`Please enter a valid number greater than zero`). There is no way to remove or disable an active limit.
+2. Even if a user no longer needs limits, the installable trigger `checkResponseLimit` continues to run on every submission indefinitely, wasting the 20-trigger quota per user/project.
+
+### Proposal
+
+1. Support an empty value or add a "Remove Limit / Disable" button in the UI.
+2. In `actions.js`, when a limit is cleared: delete the `maxResponses` property and delete the associated trigger from `ScriptApp.getProjectTriggers()` to reclaim project quota.
+
+## 10. Eliminate service calls from the global script scope
+
+**Status:** open  
+**Severity:** medium  
+**Files:** `src/main.js`, `src/actions.js`, `src/triggers.js`
+
+### What is happening
+
+`var formProperties = PropertiesService.getDocumentProperties();` executes in the global root scope of three different files. This creates collisions under V8 and causes runtime errors in contexts where services lack authorization (e.g., during initial simple trigger evaluation).
+
+### Proposal
+
+Remove top-level initializations and call `PropertiesService.getDocumentProperties()` lazily inside the functions that require it.
+
+## 11. Behavior when modifying the limit while the form is closed
+
+**Status:** open (design decision pending)  
+**Severity:** medium  
+**Files:** `src/actions.js`
+
+- Raising the limit while the form is closed does not reopen it: it stays closed until manually enabled in Google Forms settings.
+- Lowering the limit below the current response count does not close the form until the next submission arrives.
+
+### Proposal
+
+Explicitly decide whether to document both behaviors or automate them (for example, automatically reopening the form when a limit greater than the current count is set). Document the final decision in `README.md`.
+
+## 12. Brand assets for the listing
+
+**Status:** open  
 **Severity:** medium
 
-The existing assets in `misc/` come from the previous stage of the project and contain no visible text, so they remain usable. For the public listing it is worth defining the final set (128×128 icon, banner and screenshots) following the current icon's style.
+The existing assets in `misc/` come from the earlier "Limiter" stage and contain no visible text, so they remain usable. For the public Marketplace listing, define the final asset bundle (128×128 icon, banner, and promotional screenshots) matching the current branding.
 
-## 6. UI internationalization
+## 13. Settings dialog UX/UI improvements
 
-**Status:** open
+**Status:** open  
+**Severity:** low  
+**Files:** `src/index.html`
+
+### What is happening
+
+1. **Invisible state:** The modal does not inform the user whether the form is currently open or closed (`isAcceptingResponses`).
+2. **Fragmented saving:** Three separate buttons without a unified save option or warnings about unsaved fields.
+3. **No keyboard handling:** Pressing `Enter` inside input fields does nothing.
+4. **Server-only validation:** No client-side pre-validation before invoking `google.script.run`.
+5. **External image dependency:** The logo points to `raw.githubusercontent.com`, which may fail under strict corporate firewalls or CSP rules.
+
+### Proposal
+
+1. Add a status badge indicating the form's current state (Open / Closed).
+2. Attach `Enter` key event listeners and client-side input validation.
+3. Embed the logo in base64 in `index.html` (~6 KB) to ensure offline functionality and CSP compliance.
+4. Design a unified save button or per-field feedback indicators.
+
+## 14. UI internationalization (i18n)
+
+**Status:** open  
 **Severity:** low
 
-The UI is in English, with `useLocaleFromApp` declared but no translations. If the initial scope is Spanish-speaking users, evaluate a minimal localization (es-AR); otherwise, document that the scope is English-only.
+The UI is in English, with `useLocaleFromApp` declared but no translations. If the initial audience includes Spanish speakers, consider minimal localization (es-AR); otherwise, explicitly document that the scope is English-only.
 
-## 7. Testing strategy
+## 15. Testing strategy
 
-**Status:** open
+**Status:** open  
 **Severity:** low
 
-There are no automated tests (Apps Script includes no native runner). Alternatives: keep the manual checklist in the README (current situation) or automate basic verifications with `clasp` and remote function execution (`clasp run`) as a step before each release.
+There are no automated tests (Apps Script lacks a native runner). Alternatives: keep the manual checklist in `README.md` (current setup) or automate core verifications using `clasp` and remote function execution (`clasp run`) prior to releases.
 
-## 8. v1.0.0 release
+## 16. Create the v1.0.0 release
 
-**Status:** open
+**Status:** open  
 **Severity:** low
 
-There are no tags or releases. When the rebrand branch is merged, create `v1.0.0` with release notes (rebrand, per-form storage, documentation).
+No tags or releases exist yet. Once the pending high/critical items and rebrand changes are merged, create `v1.0.0` with release notes (rebrand, per-form storage, documentation).
 
 ---
 
 ## Fixed
 
+### Race condition in `checkResponseLimit` (double deletion) — fixed 2026-10-27
+
+`src/triggers.js` (former item 1): Replaced logic based on instantaneous response counts and `!form.isAcceptingResponses()` with a chronological index check of `e.response.getId()` within `form.getResponses()`. Responses with index `< maxResponses` are always kept (within the quota); only submissions with index `>= maxResponses` are removed.
+
 ### Shared storage across forms — fixed 2026-10-15
 
-`src/main.js`, `src/actions.js`, `src/triggers.js`: `PropertiesService.getScriptProperties()` (script-project scope, shared by all users and forms) replaced by `getDocumentProperties()` (form scope). Since there was no previous publication, no data migration is required. The verification from item 3 is still pending.
+`src/main.js`, `src/actions.js`, `src/triggers.js`: `PropertiesService.getScriptProperties()` (script-project scope, shared by all users and forms) replaced by `getDocumentProperties()` (form scope). Since there was no previous publication, no data migration is required. Real-world environment verification is still pending (see item 6).
 
 ### Typos — fixed 2026-10-15
 
@@ -123,4 +294,4 @@ Product name updated in the manifest, menu, UI, documentation, and policies. Ass
 
 ---
 
-*Last updated: 2026-10-15*
+*Last updated: 2026-10-27*

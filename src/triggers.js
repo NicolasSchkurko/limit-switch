@@ -5,33 +5,46 @@ var formProperties = PropertiesService.getDocumentProperties();
  * @param {object} e The event parameter for an onFormSubmit trigger.
  */
 function checkResponseLimit(e) {
+  if (!e || !e.response) return;
+
   var lock = LockService.getScriptLock();
   lock.waitLock(30000); // Wait for any other modifications to finish.
+
   try {
-    var form = FormApp.getActiveForm();
-
-    if (!form.isAcceptingResponses()) {
-      form.deleteResponse(e.response.getId());
-      return;
-    }
-
     var maxResponses = parseInt(formProperties.getProperty('maxResponses') || '0', 10);
     if (maxResponses <= 0) return;
 
-    var currentResponseCount = form.getResponses().length;
+    var form = FormApp.getActiveForm();
+    var currentResponseId = e.response.getId();
 
-    if (currentResponseCount > maxResponses) {
-      form.setAcceptingResponses(false);
-      form.deleteResponse(e.response.getId());
+    var allResponses = form.getResponses();
+    var totalCount = allResponses.length;
+
+    var responseIndex = -1;
+    for (var i = 0; i < totalCount; i++) {
+      if (allResponses[i].getId() === currentResponseId) {
+        responseIndex = i;
+        break;
+      }
     }
-    else if (currentResponseCount == maxResponses) {
-      form.setAcceptingResponses(false);
+
+    // If the response is not found (e.g. already deleted), exit safely.
+    if (responseIndex === -1) return;
+
+    if (responseIndex >= maxResponses) {
+      if (form.isAcceptingResponses()) {
+        form.setAcceptingResponses(false);
+      }
+      form.deleteResponse(currentResponseId);
+    } else {
+      if (totalCount >= maxResponses && form.isAcceptingResponses()) {
+        form.setAcceptingResponses(false);
+      }
     }
   } finally {
     lock.releaseLock(); // Release the lock
   }
 }
-
 
 /**
  * Creates an onFormSubmit trigger for the checkResponseLimit function if it doesn't exist.
