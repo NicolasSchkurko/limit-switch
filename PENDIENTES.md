@@ -6,7 +6,6 @@ Registro de los puntos abiertos del proyecto, ordenados de mayor a menor critici
 
 | # | Punto | Severidad | Por qué está acá |
 | --- | --- | --- | --- |
-| 9 | Permitir remover o deshabilitar el límite y limpiar triggers | Media | Hoy no es posible borrar el límite ni desactivar la verificación sin desinstalar el add-on |
 | 10 | Eliminar llamadas a servicios en el ámbito global y unificar locks | Media | Declarar `PropertiesService` en la raíz genera colisiones en V8; el boilerplate de `LockService` se repite en 4 funciones |
 | 11 | Definir el comportamiento al modificar el límite con el formulario cerrado | Media | Subir el límite no reabre el formulario; bajarlo por debajo del conteo actual no lo cierra hasta el próximo envío |
 | 12 | Definir la identidad definitiva para el listado | Media | Los assets actuales provienen de la etapa "Limiter"; el Marketplace requiere ícono, banner y capturas |
@@ -18,22 +17,6 @@ Registro de los puntos abiertos del proyecto, ordenados de mayor a menor critici
 | 7 | Publicar el add-on en el Google Workspace Marketplace | Baja | Hoy solo existe en el proyecto de Apps Script: no hay forma de que otra persona lo instale (costo confirmado: $0 USD) |
 
 ---
-
-## 9. Permitir remover o deshabilitar el límite y limpiar triggers
-
-**Estado:** abierto  
-**Severidad:** media  
-**Archivos:** `src/actions.js`, `src/triggers.js`, `src/index.html`
-
-### Qué pasa
-
-1. `setMaxResponses(limit)` rechaza cadenas vacías o `0`, lanzando un error (`Please enter a valid number greater than zero`). No existe forma de eliminar el límite una vez configurado.
-2. Si el usuario quisiera pausar o retirar el límite, el trigger instalable `checkResponseLimit` continúa ejecutándose en cada envío de por vida.
-
-### Propuesta
-
-1. Permitir un valor vacío o un botón "Remove Limit / Disable" en la UI.
-2. En `actions.js`, si el límite se elimina: borrar la propiedad `maxResponses` y eliminar el trigger asociado de `ScriptApp.getProjectTriggers()` para liberar cuota de ejecución.
 
 ## 10. Eliminación de llamadas a servicios en el ámbito global y unificación de locks
 
@@ -175,6 +158,10 @@ Confirmado el desglose de costos:
 ---
 
 ## Corregidos
+
+### Desactivación y borrado de límite con limpieza de triggers — corregido 2026-10-27
+
+`src/actions.js`, `src/triggers.js`, `src/index.html` (antiguo ítem 9): Se incorporó la posibilidad de remover el límite de respuestas sin desinstalar el add-on. `setMaxResponses` ahora admite valores vacíos o `0` para desactivar el límite, y se añadió la acción `removeLimit()` y un botón dedicado "Remove Limit" en la interfaz. Al desactivar el límite, se elimina la propiedad `maxResponses` y se eliminan todos los triggers instalables `checkResponseLimit` asociados al formulario en `ScriptApp.getProjectTriggers()`, liberando cuota del proyecto.
 
 ### Optimización de lectura masiva (estrategia de Zona Crítica con margen de seguridad) — corregido 2026-10-27
 

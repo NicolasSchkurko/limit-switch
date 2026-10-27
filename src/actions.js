@@ -22,7 +22,17 @@ function getAndSyncResponseCount(form) {
 }
 
 /**
- * Sets the maximum number of allowed responses.
+ * Internal helper to clear the max responses limit and remove the submission trigger.
+ * @returns {string} A confirmation message.
+ */
+function clearLimitInternal() {
+  formProperties.deleteProperty('maxResponses');
+  deleteTrigger();
+  return 'Response limit removed successfully.';
+}
+
+/**
+ * Sets the maximum number of allowed responses, or removes the limit if empty or zero.
  * @param {string} limit The maximum number of responses as a string.
  * @returns {string} A confirmation or error message.
  */
@@ -31,7 +41,14 @@ function setMaxResponses(limit) {
   lock.waitLock(30000);
 
   try {
+    if (limit === null || limit === undefined || (typeof limit === 'string' && limit.trim() === '')) {
+      return clearLimitInternal();
+    }
+
     var limitNumber = parseInt(limit, 10);
+    if (limitNumber === 0) {
+      return clearLimitInternal();
+    }
 
     if (!isNaN(limitNumber) && limitNumber > 0) {
       formProperties.setProperty('maxResponses', limitNumber.toString());
@@ -40,7 +57,7 @@ function setMaxResponses(limit) {
       return 'Limit set to ' + limitNumber + ' responses.';
     }
 
-    throw new Error('Please enter a valid number greater than zero.');
+    throw new Error('Please enter a valid number greater than zero, or leave empty to remove the limit.');
 
   } catch (e) {
 
@@ -50,7 +67,28 @@ function setMaxResponses(limit) {
 
     throw new Error(e.message);
 
-  }finally {
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * Removes the response limit and deletes the onFormSubmit trigger.
+ * Exposed to client-side UI via google.script.run.
+ * @returns {string} A confirmation message.
+ */
+function removeLimit() {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+
+  try {
+    return clearLimitInternal();
+  } catch (e) {
+    if (e.message.includes('PERMISSION_DENIED')) {
+      throw new Error('Permission Error: It seems you have multiple Google accounts logged in. Please log out of other accounts and try again.');
+    }
+    throw new Error(e.message);
+  } finally {
     lock.releaseLock();
   }
 }

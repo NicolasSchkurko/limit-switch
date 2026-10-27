@@ -61,6 +61,19 @@
     .btn-sync:hover {
       background-color: #5a6268;
     }
+    .btn-group {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .btn-group button {
+      flex: 1;
+    }
+    .btn-secondary {
+      background-color: #6c757d;
+    }
+    .btn-secondary:hover {
+      background-color: #5a6268;
+    }
     label {
       font-size: 1rem;
       font-weight: 600;
@@ -156,8 +169,11 @@
 
     <div>
       <label for="limit">Set Response Limit:</label>
-      <input type="number" id="limit" min="1" value="<?= maxResponses === 'Not set' ? '' : maxResponses ?>">
-      <button onclick="setLimit()">Save Limit</button>
+      <input type="number" id="limit" min="1" placeholder="Leave empty to remove" value="<?= maxResponses === 'Not set' ? '' : maxResponses ?>">
+      <div class="btn-group">
+        <button onclick="setLimit()">Save Limit</button>
+        <button type="button" class="btn-secondary" onclick="disableLimit()">Remove Limit</button>
+      </div>
       <p><strong>Current:</strong> <span class="current-value" id="currentLimit"><?= maxResponses ?></span></p>
     </div>
     
@@ -228,16 +244,32 @@
     }
 
     function setLimit() {
+      var limit = document.getElementById("limit").value.trim();
       setButtonsDisabled(true);
-      var limit = document.getElementById("limit").value;
       google.script.run
         .withSuccessHandler(function(msg) {
           handleSuccess(msg, function() {
-            document.getElementById("currentLimit").textContent = limit || "Not set";
+            document.getElementById("currentLimit").textContent = limit ? limit : "Not set";
+            if (!limit) {
+              document.getElementById("limit").value = "";
+            }
           });
         })
         .withFailureHandler(handleFailure)
         .setMaxResponses(limit);
+    }
+
+    function disableLimit() {
+      setButtonsDisabled(true);
+      google.script.run
+        .withSuccessHandler(function(msg) {
+          handleSuccess(msg, function() {
+            document.getElementById("limit").value = "";
+            document.getElementById("currentLimit").textContent = "Not set";
+          });
+        })
+        .withFailureHandler(handleFailure)
+        .removeLimit();
     }
 
     function setMessage() {

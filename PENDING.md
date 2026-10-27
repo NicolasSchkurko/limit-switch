@@ -6,7 +6,6 @@ Log of open project items, ordered from highest to lowest criticality. Each item
 
 | # | Item | Severity | Why it is here |
 | --- | --- | --- | --- |
-| 9 | Allow removing or disabling the limit and clean up triggers | Medium | Currently impossible to remove the limit or disable enforcement without uninstalling the add-on |
 | 10 | Eliminate service calls from global scope and unify lock management | Medium | Declaring `PropertiesService` at top-level causes V8 collisions; `LockService` boilerplate is repeated across 4 functions |
 | 11 | Decide behavior when modifying the limit while the form is closed | Medium | Raising the limit does not reopen the form; lowering it below current count does not close it until the next submission |
 | 12 | Define final brand assets for the listing | Medium | Existing assets belong to the "Limiter" stage; the Marketplace requires a 128×128 icon, banner, and screenshots |
@@ -18,22 +17,6 @@ Log of open project items, ordered from highest to lowest criticality. Each item
 | 7 | Publish the add-on on the Google Workspace Marketplace | Low | Currently only exists in the Apps Script project: nobody else can install it (confirmed total cost: $0 USD) |
 
 ---
-
-## 9. Allow removing or disabling the limit and clean up triggers
-
-**Status:** open  
-**Severity:** medium  
-**Files:** `src/actions.js`, `src/triggers.js`, `src/index.html`
-
-### What is happening
-
-1. `setMaxResponses(limit)` rejects empty strings or `0`, throwing an error (`Please enter a valid number greater than zero`). There is no way to remove or disable an active limit.
-2. Even if a user no longer needs limits, the installable trigger `checkResponseLimit` continues to run on every submission indefinitely, wasting the 20-trigger quota per user/project.
-
-### Proposal
-
-1. Support an empty value or add a "Remove Limit / Disable" button in the UI.
-2. In `actions.js`, when a limit is cleared: delete the `maxResponses` property and delete the associated trigger from `ScriptApp.getProjectTriggers()` to reclaim project quota.
 
 ## 10. Eliminate service calls from global scope and unify lock management
 
@@ -175,6 +158,10 @@ Confirmed cost breakdown:
 ---
 
 ## Fixed
+
+### Ability to remove/disable limit and clean up triggers — fixed 2026-10-27
+
+`src/actions.js`, `src/triggers.js`, `src/index.html` (former item 9): Added the ability to remove or disable an active response limit without uninstalling the add-on. `setMaxResponses` now accepts empty strings or `0` to disable the limit, and a dedicated `removeLimit()` action and "Remove Limit" UI button were added. Disabling the limit removes the `maxResponses` document property and cleans up all `checkResponseLimit` triggers from `ScriptApp.getProjectTriggers()`, reclaiming user and project trigger quota.
 
 ### Bulk response reading optimization (Critical Zone strategy with safety margin) — fixed 2026-10-27
 

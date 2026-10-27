@@ -71,7 +71,8 @@ function checkResponseLimit(e) {
  * Creates an onFormSubmit trigger for the checkResponseLimit function if it doesn't exist.
  */
 function setTrigger() {
-  var formId = FormApp.getActiveForm().getId();
+  var form = FormApp.getActiveForm();
+  var formId = form.getId();
   var triggers = ScriptApp.getProjectTriggers();
   var triggerExists = triggers.some(function(trigger) {
     return trigger.getHandlerFunction() === 'checkResponseLimit' &&
@@ -80,8 +81,22 @@ function setTrigger() {
 
   if (!triggerExists) {
     ScriptApp.newTrigger('checkResponseLimit')
-      .forForm(FormApp.getActiveForm())
+      .forForm(form)
       .onFormSubmit()
       .create();
   }
+}
+
+/**
+ * Deletes all onFormSubmit triggers for checkResponseLimit associated with this form.
+ */
+function deleteTrigger() {
+  var formId = FormApp.getActiveForm().getId();
+  var triggers = ScriptApp.getProjectTriggers();
+  triggers.forEach(function(trigger) {
+    if (trigger.getHandlerFunction() === 'checkResponseLimit' &&
+        trigger.getTriggerSourceId() === formId) {
+      ScriptApp.deleteTrigger(trigger);
+    }
+  });
 }
