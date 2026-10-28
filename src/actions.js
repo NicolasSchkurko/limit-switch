@@ -1,41 +1,40 @@
 /**
- * Retrieves a property value supporting both DocumentProperties and UserProperties fallback.
- * @param {string} [formId] The form ID used for scoping UserProperties fallback.
- * @param {string} key The property key.
+ * Retrieves a property value supporting DocumentProperties (primary) and ScriptProperties (fallback).
+ * @param {string} [formId] Form ID for scoping in ScriptProperties.
+ * @param {string} key Property key.
  * @returns {string|null} The property value.
  */
 function getStoredProperty(formId, key) {
   try {
     var docProps = PropertiesService.getDocumentProperties();
     if (docProps) {
-      var val = docProps.getProperty(key);
-      if (val !== null && val !== undefined) {
-        return val;
-      }
-    }
-  } catch (e) {
-    // DocumentProperties may not be available in standalone/trigger context
-  }
-
-  try {
-    var userProps = PropertiesService.getUserProperties();
-    if (userProps) {
-      var scopedKey = formId ? (formId + '_' + key) : key;
-      var userVal = userProps.getProperty(scopedKey);
-      if (userVal !== null && userVal !== undefined) {
-        return userVal;
+      var dVal = docProps.getProperty(key);
+      if (dVal !== null && dVal !== undefined && dVal !== '') {
+        return dVal;
       }
     }
   } catch (e) {}
+
+  if (formId) {
+    try {
+      var scriptProps = PropertiesService.getScriptProperties();
+      if (scriptProps) {
+        var sVal = scriptProps.getProperty(formId + '_' + key);
+        if (sVal !== null && sVal !== undefined && sVal !== '') {
+          return sVal;
+        }
+      }
+    } catch (e) {}
+  }
 
   return null;
 }
 
 /**
- * Persists a property value in both DocumentProperties and UserProperties.
- * @param {string} [formId] The form ID used for scoping UserProperties.
- * @param {string} key The property key.
- * @param {string} val The property value.
+ * Persists a property value across DocumentProperties and ScriptProperties.
+ * @param {string} [formId] Form ID for scoping in ScriptProperties.
+ * @param {string} key Property key.
+ * @param {string} val Property value.
  */
 function setStoredProperty(formId, key, val) {
   var stringVal = (val === null || val === undefined) ? '' : val.toString();
@@ -47,19 +46,20 @@ function setStoredProperty(formId, key, val) {
     }
   } catch (e) {}
 
-  try {
-    var userProps = PropertiesService.getUserProperties();
-    if (userProps) {
-      var scopedKey = formId ? (formId + '_' + key) : key;
-      userProps.setProperty(scopedKey, stringVal);
-    }
-  } catch (e) {}
+  if (formId) {
+    try {
+      var scriptProps = PropertiesService.getScriptProperties();
+      if (scriptProps) {
+        scriptProps.setProperty(formId + '_' + key, stringVal);
+      }
+    } catch (e) {}
+  }
 }
 
 /**
- * Deletes a property in both DocumentProperties and UserProperties.
- * @param {string} [formId] The form ID.
- * @param {string} key The property key.
+ * Deletes a property from both DocumentProperties and ScriptProperties.
+ * @param {string} [formId] Form ID for scoping in ScriptProperties.
+ * @param {string} key Property key.
  */
 function deleteStoredProperty(formId, key) {
   try {
@@ -69,32 +69,38 @@ function deleteStoredProperty(formId, key) {
     }
   } catch (e) {}
 
-  try {
-    var userProps = PropertiesService.getUserProperties();
-    if (userProps) {
-      var scopedKey = formId ? (formId + '_' + key) : key;
-      userProps.deleteProperty(scopedKey);
-    }
-  } catch (e) {}
+  if (formId) {
+    try {
+      var scriptProps = PropertiesService.getScriptProperties();
+      if (scriptProps) {
+        scriptProps.deleteProperty(formId + '_' + key);
+      }
+    } catch (e) {}
+  }
 }
 
 /**
- * Returns document properties for the active form (legacy compatibility helper).
- * @returns {GoogleAppsScript.Properties.Properties} The form's document properties.
+ * Returns the numeric response limit configured for a form, or 0 if not set.
+ * @param {string} formId Form ID.
+ * @returns {number} The response limit.
  */
-function getProperties() {
-  return PropertiesService.getDocumentProperties();
+function getLimitNumber(formId) {
+  var val = getStoredProperty(formId, 'maxResponses');
+  var num = parseInt(val || '0', 10);
+  return isNaN(num) ? 0 : num;
 }
 
 /**
- * Persists the cached response count in storage.
- * @param {number} count The response count to store.
- * @param {string} [formId] Optional form ID.
- * @returns {number} The stored count.
+ * Ensures the form is marked as closed if it is currently accepting responses.
+ * @param {FormApp.Form} form Form instance.
+ * @returns {boolean} Whether the status was toggled from open to closed.
  */
-function setCachedResponseCount(count, formId) {
-  setStoredProperty(formId, 'responseCount', count.toString());
-  return count;
+function ensureFormClosed(form) {
+  if (form && form.isAcceptingResponses()) {
+    form.setAcceptingResponses(false);
+    return true;
+  }
+  return false;
 }
 
 /**
@@ -113,9 +119,9 @@ function getAndSyncResponseCount(form) {
 
 /**
  * Wraps an action within a script lock and standardizes error handling.
- * @param {Function} actionFn The callback function to execute while holding the lock.
- * @param {number} [timeoutMs=30000] Maximum milliseconds to wait for the script lock.
- * @returns {*} The return value of actionFn.
+ * @param {Function} actionFn Callback to execute while holding lock.
+ * @param {number} [timeoutMs=30000] Maximum lock wait time.
+ * @returns {*} Return value of actionFn.
  */
 function withScriptLock(actionFn, timeoutMs) {
   var lock = LockService.getScriptLock();
@@ -125,7 +131,7 @@ function withScriptLock(actionFn, timeoutMs) {
     return actionFn();
   } catch (e) {
     if (e.message && e.message.includes('PERMISSION_DENIED')) {
-      throw new Error('Permission Error: It seems you have multiple Google accounts logged in. Please log out of other accounts and try again.');
+      throw new Error('Permission Error: Please ensure you are logged into only one Google account and try again.');
     }
     throw new Error(e.message);
   } finally {
@@ -134,14 +140,17 @@ function withScriptLock(actionFn, timeoutMs) {
 }
 
 /**
- * Internal helper to clear the max responses limit and remove the submission trigger.
- * @returns {object} Result object with message, current form accepting status and response count.
+ * Clears the max responses limit and removes the submission trigger.
+ * @returns {object} Result with message, accepting status and response count.
  */
 function clearLimitInternal() {
   var form = FormApp.getActiveForm();
+  if (!form) {
+    throw new Error('Active form could not be found.');
+  }
   var formId = form.getId();
   deleteStoredProperty(formId, 'maxResponses');
-  deleteTrigger();
+  deleteTrigger(form);
   var count = getAndSyncResponseCount(form);
   return {
     message: 'Response limit removed successfully.',
@@ -151,13 +160,18 @@ function clearLimitInternal() {
 }
 
 /**
- * Sets the maximum number of allowed responses, or removes the limit if empty or zero.
- * Automatically synchronizes the form's open/closed state with available capacity.
- * @param {string} limit The maximum number of responses as a string.
- * @returns {object} Result object with message, accepting status and response count.
+ * Sets the maximum number of allowed responses, or removes the limit if empty/invalid.
+ * @param {string} limit The maximum number of responses.
+ * @returns {object} Result with message, accepting status and response count.
  */
 function setMaxResponses(limit) {
   return withScriptLock(function() {
+    var form = FormApp.getActiveForm();
+    if (!form) {
+      throw new Error('Active form could not be found.');
+    }
+    var formId = form.getId();
+
     if (limit === null || limit === undefined || (typeof limit === 'string' && limit.trim() === '')) {
       return clearLimitInternal();
     }
@@ -167,54 +181,60 @@ function setMaxResponses(limit) {
       return clearLimitInternal();
     }
 
-    var form = FormApp.getActiveForm();
-    var formId = form.getId();
-    setStoredProperty(formId, 'maxResponses', limitNumber.toString());
+    var liveCount = form.getResponses().length;
 
-    var currentCount = getAndSyncResponseCount(form);
-    setTrigger();
+    if (liveCount >= limitNumber) {
+      deleteTrigger(form);
+      setStoredProperty(formId, 'maxResponses', limitNumber.toString());
+      setStoredProperty(formId, 'responseCount', liveCount.toString());
+      ensureFormClosed(form);
 
-    var isAccepting = form.isAcceptingResponses();
-
-    // Case 1: Limit already reached or exceeded -> close form immediately
-    if (currentCount >= limitNumber) {
-      if (isAccepting) {
-        form.setAcceptingResponses(false);
-        return {
-          message: 'Limit set to ' + limitNumber + ' responses. Form is now closed (already has ' + currentCount + ' responses).',
-          isAccepting: false,
-          count: currentCount
-        };
-      }
       return {
-        message: 'Limit set to ' + limitNumber + ' responses. Form remains closed (limit reached).',
+        message: 'Limit set to ' + limitNumber + ' responses. Form is now closed (already has ' + liveCount + ' responses).',
         isAccepting: false,
-        count: currentCount
+        count: liveCount
       };
     }
 
-    // Case 2: Available capacity exists -> reopen form if it was closed
-    if (!isAccepting) {
+    try {
+      if (typeof form.supportsAdvancedResponderPermissions === 'function' && form.supportsAdvancedResponderPermissions()) {
+        if (typeof form.isPublished === 'function' && !form.isPublished()) {
+          form.setPublished(true);
+        }
+      }
+    } catch (e) {}
+
+    try {
+      setTrigger(form);
+    } catch (trigErr) {
+      deleteStoredProperty(formId, 'maxResponses');
+      var errStr = trigErr.toString();
+      if (errStr.indexOf('published') !== -1 || errStr.indexOf('Publish') !== -1) {
+        throw new Error('Google Forms requires this form to be published or open for responses before activating the limiter trigger.');
+      }
+      throw new Error('Could not set limiter trigger: ' + trigErr.message);
+    }
+
+    setStoredProperty(formId, 'maxResponses', limitNumber.toString());
+    setStoredProperty(formId, 'responseCount', liveCount.toString());
+
+    var isAcceptingNow = form.isAcceptingResponses();
+    if (!isAcceptingNow) {
       form.setAcceptingResponses(true);
-      return {
-        message: 'Limit set to ' + limitNumber + ' responses. Form has been reopened.',
-        isAccepting: true,
-        count: currentCount
-      };
+      isAcceptingNow = true;
     }
 
     return {
       message: 'Limit set to ' + limitNumber + ' responses.',
-      isAccepting: true,
-      count: currentCount
+      isAccepting: isAcceptingNow,
+      count: liveCount
     };
   });
 }
 
 /**
  * Removes the response limit and deletes the onFormSubmit trigger.
- * Exposed to client-side UI via google.script.run.
- * @returns {object} Result object with message and current form accepting status.
+ * @returns {object} Result with message and current form accepting status.
  */
 function removeLimit() {
   return withScriptLock(function() {
@@ -223,16 +243,15 @@ function removeLimit() {
 }
 
 /**
- * Sets the confirmation message that appears after a form is submitted.
+ * Sets the confirmation message displayed after submission.
  * @param {string} message The confirmation message.
- * @returns {object} Result object with confirmation message and form accepting status.
+ * @returns {object} Result with message and form accepting status.
  */
 function setConfirmationMessage(message) {
   return withScriptLock(function() {
     if (messageIsEmpty(message)) {
       throw new Error('Confirmation message cannot be empty.');
     }
-
     var form = FormApp.getActiveForm();
     form.setConfirmationMessage(message);
     return {
@@ -243,9 +262,9 @@ function setConfirmationMessage(message) {
 }
 
 /**
- * Sets the message that appears when the form is closed.
+ * Sets the message displayed when the form is closed.
  * @param {string} message The closed form message.
- * @returns {object} Result object with confirmation message and form accepting status.
+ * @returns {object} Result with message and form accepting status.
  */
 function setClosedMessage(message) {
   return withScriptLock(function() {
@@ -253,20 +272,7 @@ function setClosedMessage(message) {
       throw new Error('Closed form message cannot be empty.');
     }
     var form = FormApp.getActiveForm();
-    var wasClosed = !form.isAcceptingResponses();
-
-    if (wasClosed) {
-      form.setAcceptingResponses(true);
-    }
-
-    try {
-      form.setCustomClosedFormMessage(message);
-    } finally {
-      if (wasClosed) {
-        form.setAcceptingResponses(false);
-      }
-    }
-
+    form.setCustomClosedFormMessage(message);
     return {
       message: 'Closed form message updated successfully.',
       isAccepting: form.isAcceptingResponses()
@@ -275,10 +281,9 @@ function setClosedMessage(message) {
 }
 
 /**
- * Forces a live recount of all form responses, synchronizes storage,
- * and actively enforces the configured limit policy.
- * Exposed to client-side UI via google.script.run.
- * @returns {object} Result object with actual response count and form accepting status.
+ * Recalibrates live response count from Google Forms and enforces closure if limit is reached.
+ * Never reopens a closed form.
+ * @returns {object} Result with actual response count and form accepting status.
  */
 function syncResponseCount() {
   return withScriptLock(function() {
@@ -288,33 +293,31 @@ function syncResponseCount() {
     }
     var formId = form.getId();
     var actualCount = getAndSyncResponseCount(form);
+    var maxResponses = getLimitNumber(formId);
 
-    var maxResponsesStr = getStoredProperty(formId, 'maxResponses');
-    var maxResponses = parseInt(maxResponsesStr || '0', 10);
-    var isAccepting = form.isAcceptingResponses();
-
-    // Actively enforce limit policy upon sync
-    if (!isNaN(maxResponses) && maxResponses > 0) {
-      if (actualCount >= maxResponses && isAccepting) {
-        form.setAcceptingResponses(false);
-        isAccepting = false;
-      } else if (actualCount < maxResponses && !isAccepting) {
-        form.setAcceptingResponses(true);
-        isAccepting = true;
-      }
+    if (maxResponses > 0 && actualCount >= maxResponses) {
+      ensureFormClosed(form);
     }
+
+    try {
+      var scriptProps = PropertiesService.getScriptProperties();
+      if (scriptProps) {
+        scriptProps.deleteProperty('maxResponses');
+        scriptProps.deleteProperty('responseCount');
+      }
+    } catch (e) {}
 
     return {
       count: actualCount,
-      isAccepting: isAccepting
+      isAccepting: form.isAcceptingResponses()
     };
   }, 15000);
 }
 
 /**
- * Verifies if a message is empty.
- * @param {string} message The evaluated message.
- * @returns {boolean} The validation.
+ * Verifies if a message is empty or whitespace.
+ * @param {string} message Evaluated string.
+ * @returns {boolean} True if empty.
  */
 function messageIsEmpty(message) {
   return !message || message.trim() === '';

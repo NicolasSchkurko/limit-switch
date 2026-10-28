@@ -476,6 +476,19 @@
       }
     }
 
+    function applyServerResponse(res) {
+      if (res && typeof res === "object") {
+        if (typeof res.isAccepting === "boolean") {
+          updateStatusBadge(res.isAccepting);
+        }
+        if (typeof res.count === "number") {
+          document.getElementById("currentResponseCount").textContent = res.count;
+        }
+        return res.message || "";
+      }
+      return (typeof res === "string") ? res : "";
+    }
+
     function syncCount() {
       var syncBtn = document.getElementById("syncBtn");
       setButtonsDisabled(true);
@@ -484,14 +497,9 @@
       google.script.run
         .withSuccessHandler(function(res) {
           syncBtn.textContent = "Sync";
-          if (res && typeof res === "object") {
-            document.getElementById("currentResponseCount").textContent = res.count;
-            updateStatusBadge(res.isAccepting);
-            handleSuccess("Responses synced: " + res.count);
-          } else {
-            document.getElementById("currentResponseCount").textContent = res;
-            handleSuccess("Responses synced: " + res);
-          }
+          applyServerResponse(res);
+          var count = (res && typeof res === "object" && typeof res.count === "number") ? res.count : res;
+          handleSuccess("Responses synced: " + count);
         })
         .withFailureHandler(function(err) {
           syncBtn.textContent = "Sync";
@@ -515,15 +523,7 @@
       setButtonsDisabled(true);
       google.script.run
         .withSuccessHandler(function(res) {
-          var msg = (typeof res === "object" && res.message) ? res.message : res;
-          if (typeof res === "object") {
-            if (typeof res.isAccepting === "boolean") {
-              updateStatusBadge(res.isAccepting);
-            }
-            if (typeof res.count === "number") {
-              document.getElementById("currentResponseCount").textContent = res.count;
-            }
-          }
+          var msg = applyServerResponse(res);
           handleSuccess(msg, function() {
             document.getElementById("currentLimit").textContent = limitVal ? limitVal : "Not set";
             if (!limitVal) {
@@ -539,15 +539,7 @@
       setButtonsDisabled(true);
       google.script.run
         .withSuccessHandler(function(res) {
-          var msg = (typeof res === "object" && res.message) ? res.message : res;
-          if (typeof res === "object") {
-            if (typeof res.isAccepting === "boolean") {
-              updateStatusBadge(res.isAccepting);
-            }
-            if (typeof res.count === "number") {
-              document.getElementById("currentResponseCount").textContent = res.count;
-            }
-          }
+          var msg = applyServerResponse(res);
           handleSuccess(msg, function() {
             document.getElementById("limit").value = "";
             document.getElementById("currentLimit").textContent = "Not set";
@@ -569,10 +561,7 @@
       setButtonsDisabled(true);
       google.script.run
         .withSuccessHandler(function(res) {
-          var msg = (typeof res === "object" && res.message) ? res.message : res;
-          if (typeof res === "object" && typeof res.isAccepting === "boolean") {
-            updateStatusBadge(res.isAccepting);
-          }
+          var msg = applyServerResponse(res);
           handleSuccess(msg);
         })
         .withFailureHandler(handleFailure)
@@ -591,10 +580,7 @@
       setButtonsDisabled(true);
       google.script.run
         .withSuccessHandler(function(res) {
-          var msg = (typeof res === "object" && res.message) ? res.message : res;
-          if (typeof res === "object" && typeof res.isAccepting === "boolean") {
-            updateStatusBadge(res.isAccepting);
-          }
+          var msg = applyServerResponse(res);
           handleSuccess(msg);
         })
         .withFailureHandler(handleFailure)

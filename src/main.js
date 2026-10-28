@@ -1,28 +1,30 @@
 /**
- * Creates a menu entry in the Google Forms UI when the form is opened.
- * @param {object} e The event parameter for a simple onOpen trigger.
+ * Creates menu entries in the Google Forms UI when the form is opened.
+ * @param {object} e The onOpen event object.
  */
 function onOpen(e) {
-  FormApp.getUi()
-    .createAddonMenu()
-    .addItem('Configure Limiter', 'showLimitDialog')
-    .addItem('Help', 'showHelpDialog')
-    .addToUi();
+  var ui = FormApp.getUi();
+  try {
+    ui.createMenu('Limit-Switch')
+      .addItem('Configure Limiter', 'showLimitDialog')
+      .addToUi();
+  } catch (err) {}
+  try {
+    ui.createAddonMenu()
+      .addItem('Configure Limiter', 'showLimitDialog')
+      .addToUi();
+  } catch (err) {}
 }
 
 /**
  * Runs when the add-on is installed or tested.
- * Immediately registers the menu and displays the limiter dialog.
- * @param {object} e The event parameter for a simple onInstall trigger.
+ * @param {object} e The onInstall event object.
  */
 function onInstall(e) {
   onOpen(e);
   showLimitDialog();
 }
 
-/**
- * Fallback execution handlers for Google test harness entries.
- */
 function install() {
   onInstall();
 }
@@ -47,30 +49,28 @@ function showHelpDialog() {
     '• Closed Message: Message displayed to users attempting to access a closed form.\n' +
     '• Confirmation Message: Message displayed upon successful submission.\n' +
     '• Sync: Recalibrates live response counts directly with Google Forms.\n\n' +
-    'Documentation & Privacy: https://portfolio-12u.pages.dev/limit-switch/',
+    'Documentation & Privacy: https://nschkurko.com/limit-switch/',
     ui.ButtonSet.OK
   );
 }
 
 /**
- * Displays a modal dialog with the limiter settings.
+ * Displays the limiter settings dialog.
  */
 function showLimitDialog() {
   var form = FormApp.getActiveForm();
   var formId = form.getId();
 
-  var currentResponseCount = getAndSyncResponseCount(form);
-  var maxResponses = getStoredProperty(formId, 'maxResponses') || "Not set";
-  var confirmationMessage = form.getConfirmationMessage() || "Your response has been recorded.";
-  var closedMessage = form.getCustomClosedFormMessage() || "This form is no longer accepting responses.";
-  var isAccepting = form.isAcceptingResponses();
+  var currentResponses = getAndSyncResponseCount(form);
+  var maxResponsesNum = getLimitNumber(formId);
+  var maxResponses = maxResponsesNum > 0 ? maxResponsesNum.toString() : 'Not set';
 
   var template = HtmlService.createTemplateFromFile('index');
   template.maxResponses = maxResponses;
-  template.currentResponses = currentResponseCount;
-  template.confirmationMessage = confirmationMessage;
-  template.closedMessage = closedMessage;
-  template.isAccepting = isAccepting;
+  template.currentResponses = currentResponses;
+  template.confirmationMessage = form.getConfirmationMessage() || 'Your response has been recorded.';
+  template.closedMessage = form.getCustomClosedFormMessage() || 'This form is no longer accepting responses.';
+  template.isAccepting = form.isAcceptingResponses();
 
   var ui = template.evaluate().setWidth(450).setHeight(560);
   FormApp.getUi().showModalDialog(ui, 'Limit-Switch Settings');
