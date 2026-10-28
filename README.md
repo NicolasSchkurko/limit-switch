@@ -38,6 +38,9 @@ This section documents some specific behaviors and design choices.
 - **Lowering the limit:** If the limit is set to or below the current number of responses, the add-on immediately closes the form (`form.setAcceptingResponses(false)`). This guarantees that new respondents do not waste time filling out a form that would discard their submissions.
 - **Removing the limit:** Setting an empty value, `0`, or clicking "Remove Limit" clears the limit and cleans up background triggers.
 
+**Language and Localization (i18n)**
+- For release v1.0.0, the user interface and system notifications are provided exclusively in English to ensure consistent global compatibility across all Google Workspace locales. Additional languages (including Spanish) are planned for future updates.
+
 **Linked Google Sheets — Known Limitation**
 - If your form is connected to a Google Sheet (via _Responses → Link to Sheets_), be aware that deleteResponse() in Google Apps Script **only removes the response from the form’s internal store**. The corresponding row in the linked spreadsheet is **not deleted automatically**. This is a platform-level constraint of the Google Forms / Sheets API.
 - In practice this means: if a submission arrives over the limit and is rejected by the add-on, the form’s response count will be correct, but the linked sheet may contain one extra row for that rejected submission. You can safely delete that row manually from the spreadsheet without affecting the add-on’s behavior.

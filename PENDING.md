@@ -6,36 +6,11 @@ Log of open project items, ordered from highest to lowest criticality. Each item
 
 | # | Item | Severity | Why it is here |
 | --- | --- | --- | --- |
-| 12 | Define final brand assets for the listing | Medium | Existing assets belong to the "Limiter" stage; the Marketplace requires a 128×128 icon, banner, and screenshots |
-| 14 | Evaluate UI internationalization (i18n) | Low | UI is currently English-only; `useLocaleFromApp` is declared but there are no translations |
-| 15 | Define code testing strategy | Low | No automated tests exist; only the manual checklist in the README |
 | 16 | Create the v1.0.0 release | Low | No git tags or release notes exist; should be tagged once pending items are resolved |
-| 5 | Publish URLs and legal compliance on custom domain (Cloudflare) | Low | Required for Google OAuth verification: domain verified via Search Console, Limited Use disclosure, and data deletion clause |
 | 7 | Publish the add-on on the Google Workspace Marketplace | Low | Currently only exists in the Apps Script project: nobody else can install it (confirmed total cost: $0 USD) |
 
 ---
 
-
-## 12. Brand assets for the listing
-
-**Status:** open  
-**Severity:** medium
-
-The existing assets in `misc/` come from the earlier "Limiter" stage and contain no visible text, so they remain usable. For the public Marketplace listing, define the final asset bundle (128×128 icon, banner, and promotional screenshots) matching the current branding.
-
-## 14. UI internationalization (i18n)
-
-**Status:** open  
-**Severity:** low
-
-The UI is in English, with `useLocaleFromApp` declared but no translations. If the initial audience includes Spanish speakers, consider minimal localization (es-AR); otherwise, explicitly document that the scope is English-only.
-
-## 15. Testing strategy
-
-**Status:** open  
-**Severity:** low
-
-There are no automated tests (Apps Script lacks a native runner). Alternatives: keep the manual checklist in `README.md` (current setup) or automate core verifications using `clasp` and remote function execution (`clasp run`) prior to releases.
 
 ## 16. Create the v1.0.0 release
 
@@ -43,39 +18,6 @@ There are no automated tests (Apps Script lacks a native runner). Alternatives: 
 **Severity:** low
 
 No tags or releases exist yet. Once the pending items are resolved, create `v1.0.0` with release notes (rebrand, per-form storage, concurrency fixes, documentation).
-
-## 5. Publish URLs, landing page, and legal compliance on custom domain (Cloudflare)
-
-**Status:** open  
-**Severity:** low  
-**Files:** `docs/Privacy_policy.md`, `docs/Terms_of_service.md`
-
-### What is missing
-
-Google OAuth verification requires that the Homepage, Privacy Policy, and Terms of Service be publicly reachable under a **domain verified in Google Search Console**. The documents currently live only in Markdown inside the repository and lack mandatory Google Trust & Safety clauses.
-
-### Proposal & Key Requirements
-
-1. **Hosting on Cloudflare with a custom domain:**
-   - Deploy the landing page and policy documents via Cloudflare Pages on the author's custom domain.
-   - Add the Google Search Console DNS `TXT` verification record in Cloudflare DNS (verified within seconds, fulfilling Google's domain ownership mandate).
-   - Recommended URL structure:
-     - Homepage / Landing: `https://yourdomain.com/limit-switch` (or subdomain `https://limit-switch.yourdomain.com`).
-     - Privacy Policy: `https://yourdomain.com/limit-switch/privacy`.
-     - Terms of Service: `https://yourdomain.com/limit-switch/terms`.
-
-2. **Mandatory "Limited Use" disclosure in Privacy Policy:**
-   Google Trust & Safety rejects verification requests if the policy does not include the exact compliance statement:
-   > *"Limit-Switch's use and transfer to any other app of information received from Google APIs will adhere to [Google API Services User Data Policy](https://developers.google.com/terms/api-services-user-data-policy), including the Limited Use requirements."*
-
-3. **Explicit Data Retention & Deletion section:**
-   Specify that configuration settings are stored solely within the form via `DocumentProperties` and are automatically destroyed when the user uninstalls the add-on or deletes the form from Google Drive.
-
-4. **Identity & Support Email Consistency:**
-   The application name (`Limit-Switch`) and user support email (`schkurkonicolas@gmail.com`) must match across the policy, terms, and Google Cloud OAuth Consent Screen configuration.
-
-5. **Landing Page Requirements:**
-   The homepage must clearly describe the add-on's purpose and contain visible footer links to both the Privacy Policy and Terms of Service.
 
 ## 7. Publish the add-on on the Google Workspace Marketplace
 
@@ -106,6 +48,30 @@ Confirmed cost breakdown:
 ---
 
 ## Fixed
+
+### Landing page, Privacy Policy, and Terms integrated into portfolio — fixed 2026-10-28
+
+`limit-switch/index.html`, `limit-switch/privacy.html`, `limit-switch/terms.html` (former item 5): Created all 3 public pages inside the `limit-switch/` directory of the portfolio repository on Cloudflare Pages, inheriting the visual style (`style.css`), typography, and dark/light theme support. Fulfilled all strict Google Trust & Safety mandates:
+1. **Mandatory "Limited Use" statement:** verbatim inclusion with official link to Google API Services User Data Policy.
+2. **Data retention & deletion:** explicit section documenting automatic deletion of properties and triggers upon form deletion or add-on uninstall.
+3. **Identity consistency:** application name `Limit-Switch` and support email `schkurkonicolas@gmail.com`.
+4. **Landing page:** full feature overview with prominent footer links to Privacy Policy and Terms of Service.
+
+### Defined manual E2E testing strategy — resolved 2026-10-27
+
+`TESTING_CHECKLIST.md`, `.gitignore` (former item 15): Created a comprehensive End-to-End test checklist with 7 key verification scenarios (standard limit flow, closed form messages, automated reopening, instant closing on reduction, clean trigger removal, manual sync, and keyboard validation) in `TESTING_CHECKLIST.md`, added to `.gitignore` for developer quality assurance prior to releases.
+
+### Configured branding assets for Marketplace store listing — fixed 2026-10-27
+
+`misc/`, `src/appsscript.json` (former item 12): Added the required graphic assets for the Google Workspace Marketplace listing console:
+- `misc/LimiterIcon.jpg`: main application store icon (128×128 px).
+- `misc/toolbar-icon.jpg`: add-on toolbar icon (32×32 px), linked in `src/appsscript.json` (`logoUrl`).
+- `misc/card-banner.jpg`: store listing card banner for search results and category views (220×140 px).
+Promotional screenshots will be taken once running live inside a Google Form.
+
+### Defined internationalization scope (Global English for v1.0.0) — resolved 2026-10-27
+
+`README.md` (former item 14): Defined that Limit-Switch v1.0.0 uses standard English across the entire interface and notifications to ensure universal compatibility across all Google Workspace locales without introducing complex translation catalogs. Documented this decision in the technical notes of `README.md`, scheduling additional languages (such as Spanish) for future updates.
 
 ### Settings dialog UX/UI improvements — fixed 2026-10-27
 

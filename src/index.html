@@ -4,226 +4,432 @@
   <base target="_top">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    html {
+    :root {
+      --ink: #16150f;
+      --ink-secondary: #4a4942;
+      --muted: #717069;
+      --line: rgba(22, 21, 15, 0.12);
+      --line-strong: rgba(22, 21, 15, 0.22);
+      --surface: #f9f8f6;
+      --surface-hover: #f1f0ec;
+      --green-bg: #e6f4ea;
+      --green-text: #137333;
+      --green-line: rgba(19, 115, 51, 0.25);
+      --red-bg: #fce8e6;
+      --red-text: #c5221f;
+      --red-line: rgba(197, 34, 31, 0.25);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * {
       box-sizing: border-box;
-      font-size: 16px; 
-    }
-    *, *:before, *:after {
-      box-sizing: inherit;
-    }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: #f9f9f9;
       margin: 0;
-      padding: 1.25rem;
-      line-height: 1.5;
+      padding: 0;
     }
+
+    body {
+      font-family: var(--sans);
+      color: var(--ink);
+      background-color: #ffffff;
+      padding: 14px 16px;
+      line-height: 1.45;
+      font-size: 13px;
+      -webkit-font-smoothing: antialiased;
+    }
+
     .container {
-      background-color: white;
-      padding: 1.25rem;
-      border-radius: 0.5rem;
-      box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.08);
       width: 100%;
-      margin: auto;
+      max-width: 420px;
+      margin: 0 auto;
     }
-    h2 {
-      text-align: center;
-      color: #2c3e50;
-      margin-top: 0;
-      margin-bottom: 0.5rem;
-      font-size: clamp(1.25rem, 5vw, 1.5rem);
-    }
-    .logo-png {
-      display: block;
-      margin: 0 auto 0.5rem; 
-      width: 5rem;         
-      height: 5rem;
-      object-fit: contain; 
-    }
-    .info-bar { 
+
+    /* Top Bar: Responses | Status | Sync */
+    .top-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background-color: #f1f3f5;
-      padding: 0.6rem 0.85rem;
-      border-radius: 0.375rem;
-      margin-bottom: 1rem;
-      font-size: 0.9rem;
-    }
-    .info-left {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-    }
-    .status-badge {
-      display: inline-block;
-      padding: 0.2rem 0.55rem;
-      border-radius: 1rem;
-      font-size: 0.75rem;
-      font-weight: 700;
-      letter-spacing: 0.02em;
-    }
-    .badge-open {
-      background-color: #d4edda;
-      color: #155724;
-    }
-    .badge-closed {
-      background-color: #f8d7da;
-      color: #721c24;
-    }
-    .btn-sync {
-      width: auto;
-      margin: 0;
-      padding: 0.35rem 0.75rem;
-      font-size: 0.8rem;
-      font-weight: 600;
-      background-color: #6c757d;
-      border-radius: 0.25rem;
-    }
-    .btn-sync:hover {
-      background-color: #5a6268;
-    }
-    .btn-group {
-      display: flex;
-      gap: 0.5rem;
-    }
-    .btn-group button {
-      flex: 1;
-    }
-    .btn-secondary {
-      background-color: #6c757d;
-    }
-    .btn-secondary:hover {
-      background-color: #5a6268;
-    }
-    label {
-      font-size: 0.95rem;
-      font-weight: 600;
-      margin-top: 1rem;
-      margin-bottom: 0.35rem;
-      display: block;
-      color: #34495e;
-    }
-    input[type="number"], input[type="text"] {
-      width: 100%;
-      padding: 0.65rem 0.75rem;
-      margin-bottom: 0.35rem;
-      border: 1px solid #bdc3c7;
-      border-radius: 0.375rem;
-      font-size: 0.95rem;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-    input:focus {
-      outline: none;
-      border-color: #007bff;
-      box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
-    }
-    button {
-      background-color: #007bff;
-      color: white;
-      padding: 0.65rem 1.25rem;
-      border: none;
-      border-radius: 0.375rem;
-      cursor: pointer;
-      font-size: 0.95rem;
-      font-weight: 600;
-      transition: background-color 0.2s, opacity 0.2s;
-      width: 100%;
-      margin-top: 0.35rem; 
-    }
-    button:hover { background-color: #0056b3; }
-    button:disabled {
-      background-color: #5a9ed8;
-      cursor: not-allowed;
-      opacity: 0.7;
-    }
-    p {
-      margin: 0.25rem 0;
-      color: #7f8c8d;
-      font-size: 0.85rem;
-    }
-    .current-value {
-      font-weight: 600;
-      color: #007bff;
-    }
-    #status {
-      text-align: center;
-      font-weight: bold;
-      min-height: 1.5rem;
-      margin-bottom: 0.75rem;
-      font-size: 0.9rem;
+      background-color: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin-bottom: 12px;
     }
 
-    /* Modal dialog */
+    .top-bar-left {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    .top-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .count-value {
+      font-family: var(--mono);
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--ink);
+    }
+
+    .top-bar-center {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    .badge-open {
+      background-color: var(--green-bg);
+      color: var(--green-text);
+      border: 1px solid var(--green-line);
+    }
+
+    .badge-closed {
+      background-color: var(--red-bg);
+      color: var(--red-text);
+      border: 1px solid var(--red-line);
+    }
+
+    .top-bar-right {
+      display: flex;
+      align-items: center;
+    }
+
+    .btn-sync {
+      font-family: var(--sans);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ink);
+      background-color: #ffffff;
+      border: 1px solid var(--line-strong);
+      border-radius: 5px;
+      padding: 4px 10px;
+      cursor: pointer;
+      transition: background-color 0.15s ease, border-color 0.15s ease;
+    }
+
+    .btn-sync:hover {
+      background-color: var(--surface-hover);
+      border-color: var(--ink);
+    }
+
+    /* Brand Header */
+    .brand-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 12px;
+    }
+
+    .brand-logo {
+      width: 22px;
+      height: 22px;
+      color: var(--ink);
+      flex-shrink: 0;
+    }
+
+    .brand-title {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+    }
+
+    .brand-meta {
+      margin-left: auto;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    /* Notification Banner */
+    .status-banner {
+      display: none;
+      padding: 7px 10px;
+      border-radius: 5px;
+      font-size: 12px;
+      font-weight: 500;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+
+    .status-banner.success {
+      display: block;
+      background-color: var(--green-bg);
+      color: var(--green-text);
+      border: 1px solid var(--green-line);
+    }
+
+    .status-banner.error {
+      display: block;
+      background-color: var(--red-bg);
+      color: var(--red-text);
+      border: 1px solid var(--red-line);
+    }
+
+    /* Form Sections */
+    .form-section {
+      margin-bottom: 12px;
+    }
+
+    .section-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 4px;
+    }
+
+    .field-label {
+      font-family: var(--mono);
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--ink-secondary);
+    }
+
+    .meta-status {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .meta-status span {
+      font-family: var(--mono);
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    input[type="number"], input[type="text"] {
+      width: 100%;
+      padding: 7px 9px;
+      font-family: var(--sans);
+      font-size: 13px;
+      color: var(--ink);
+      background-color: #ffffff;
+      border: 1px solid var(--line-strong);
+      border-radius: 5px;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--ink);
+      box-shadow: 0 0 0 2px rgba(22, 21, 15, 0.08);
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 5px;
+    }
+
+    .btn-primary {
+      flex: 1;
+      background-color: var(--ink);
+      color: #ffffff;
+      border: 1px solid var(--ink);
+      border-radius: 5px;
+      padding: 7px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.15s ease;
+    }
+
+    .btn-primary:hover {
+      background-color: #2c2b24;
+    }
+
+    .btn-secondary {
+      background-color: #ffffff;
+      color: var(--ink);
+      border: 1px solid var(--line-strong);
+      border-radius: 5px;
+      padding: 7px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.15s ease, border-color 0.15s ease;
+    }
+
+    .btn-secondary:hover {
+      background-color: var(--surface);
+      border-color: var(--ink);
+    }
+
+    .btn-full {
+      width: 100%;
+      margin-top: 5px;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Error Modal */
     .modal-overlay {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background-color: rgba(0, 0, 0, 0.5);
-      display: none; justify-content: center; align-items: center;
-      z-index: 1000; padding: 1rem;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(22, 21, 15, 0.45);
+      backdrop-filter: blur(2px);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      padding: 16px;
     }
-    .modal-content {
-      background: white; padding: 1.5rem; border-radius: 0.5rem;
-      box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.3);
-      width: 100%; max-width: 25rem; text-align: center;
+
+    .modal-card {
+      background: #ffffff;
+      padding: 16px 18px;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      box-shadow: 0 8px 24px rgba(22, 21, 15, 0.12);
+      width: 100%;
+      max-width: 340px;
     }
-    .modal-content h3 { margin-top: 0; color: #c0392b; }
-    .modal-content p { color: #34495e; font-size: 1rem; }
-    .modal-content button {
-      margin-top: 1rem; background-color: #c0392b; width: auto; padding: 0.5rem 1.5rem;
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
     }
-    .modal-content button:hover { background-color: #a93226; }
+
+    .modal-header h3 {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--red-text);
+      font-family: var(--mono);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 18px;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 0 4px;
+      line-height: 1;
+    }
+
+    .modal-body {
+      color: var(--ink-secondary);
+      font-size: 12.5px;
+      line-height: 1.45;
+      margin-bottom: 12px;
+      word-break: break-word;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h2>Limit-Switch</h2>
-
-    <!-- Inlined base64 logo: offline-ready and CSP-compliant -->
-    <img class="logo-png" src="data:image/png;base64,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" alt="Limit-Switch Logo">
-
-    <div class="info-bar">
-      <div class="info-left">
-        <span><strong>Responses:</strong> <span class="current-value" id="currentResponseCount"><?= currentResponses ?></span></span>
+    <!-- Top Status Bar: Responses (Left) | Status (Center) | Sync (Right) -->
+    <div class="top-bar">
+      <div class="top-bar-left">
+        <span class="top-label">Responses:</span>
+        <span class="count-value" id="currentResponseCount"><?= currentResponses ?></span>
+      </div>
+      <div class="top-bar-center">
         <span id="formStatusBadge" class="status-badge <?= isAccepting ? 'badge-open' : 'badge-closed' ?>">
           <?= isAccepting ? '● Open' : '● Closed' ?>
         </span>
       </div>
-      <button id="syncBtn" class="btn-sync" onclick="syncCount()" title="Recalibrate response count and status from Google Forms">🔄 Sync</button>
+      <div class="top-bar-right">
+        <button type="button" id="syncBtn" class="btn-sync" onclick="syncCount()" title="Recalibrate live response count directly from Google Forms">Sync</button>
+      </div>
     </div>
 
-    <div id="status"></div>
+    <!-- Brand Header -->
+    <div class="brand-header">
+      <svg class="brand-logo" xmlns="http://www.w3.org/2000/svg" viewBox="140 140 680 680" aria-hidden="true">
+        <path d="m687.52 191.79c-3.76 0.13-6.6 1.43-10.49 3.81q-2.37 1.46-4.81 2.78c-87.7 48.49-175.26 97.68-262.58 146.69-11.73 5.83-11.73 5.83-25.07 5.68-0.27 0-56.34 0.2-60.57 0.19-4.86 0.01-7.04 0.53-10.46 3.94-6.07 7.46-6.05 17.93-5.87 27.1-19.91-0.06-5.4 0.09-44.82-0.02-18.79 0.16-19.58 10.05-19.6 24.39q0.01 1.36 0.02 2.68c-0.2 71.82 0.19 143.64 0.11 215.45-0.04 9.63 0.12 27.24 25.85 26.94 2.97 0.02 7.66 0.03 13.85 0.04v97.53 5.26q0-0.35 0.01-0.7 0-0.35 0.02-0.7 0.02-0.35 0.04-0.7 0.02-0.34 0.05-0.69c0.21 2.08 0.68 4.1 1.38 5.94 0.71 1.85 1.65 3.51 2.76 4.88 1.12 1.38 2.4 2.47 3.79 3.2 1.39 0.74 2.85 1.12 4.33 1.12 1.48 0 2.95-0.38 4.34-1.12 1.38-0.74 2.67-1.82 3.78-3.2 1.12-1.38 2.05-3.03 2.76-4.88 0.71-1.85 1.18-3.86 1.38-5.95q0.03 0.35 0.06 0.71 0.02 0.35 0.04 0.7 0.01 0.35 0.02 0.71 0.01 0.35 0.01 0.71v-5.29-97.53c37.37-0.02 95.91-0.11 160.92-0.19v98.82 5.26q0-0.35 0.01-0.7 0.01-0.35 0.03-0.7 0.01-0.35 0.03-0.7 0.03-0.35 0.06-0.69c0.2 2.08 0.67 4.1 1.38 5.94 0.71 1.85 1.64 3.5 2.76 4.88 1.12 1.38 2.4 2.47 3.79 3.2 1.38 0.74 2.85 1.12 4.33 1.12 1.48 0 2.95-0.38 4.33-1.12 1.39-0.74 2.67-1.82 3.79-3.2 1.12-1.38 2.05-3.03 2.76-4.88 0.7-1.85 1.17-3.86 1.38-5.95q0.03 0.35 0.05 0.71 0.03 0.35 0.04 0.7 0.02 0.35 0.03 0.71 0.01 0.35 0.01 0.71v-5.29-98.85c50.32-0.05 103.3-0.09 152.53-0.06v97.47 5.26q0-0.35 0.01-0.7 0.01-0.35 0.02-0.7 0.02-0.35 0.04-0.69 0.02-0.35 0.06-0.7c0.2 2.08 0.67 4.1 1.38 5.95 0.71 1.84 1.64 3.5 2.76 4.88 1.12 1.38 2.4 2.46 3.78 3.2 1.39 0.73 2.86 1.11 4.34 1.11 1.48 0 2.95-0.38 4.33-1.12 1.39-0.73 2.67-1.82 3.79-3.2 1.11-1.38 2.05-3.03 2.75-4.88 0.71-1.85 1.18-3.86 1.39-5.94q0.03 0.35 0.05 0.7 0.03 0.35 0.04 0.7 0.02 0.36 0.03 0.71 0 0.36 0.01 0.71v-5.29-97.46c10.35 0.01 20.48 0.03 30.32 0.04 0 0 15.11 0.2 15.25-15.88 0.07-189.04 0.03-41.38 0.09-197.29-0.24-13.18-7.22-28.86-23.35-29.41-1.24 0.01-1.24 0.01-2.45 0.02-68.03-0.42-136.05-0.2-204.08-0.6-1.91-4.75-4.44-9.15-6.92-13.61-1.91-2.87-3.65-5.92-6.08-8.39-4.69-3.16-8.91-4.46-14.54-4.45-0.79 0.02-28.1 0.4-30.46 0.45 0.53-9.89 0.58-10.6 1-13 28.54-14.27 190.55-107.49 260.99-145.25 3.65-1.97 7.01-3.84 10.01-6.75 3.49-4.33 3.35-7.65 3-13-1.87-5.62-6.88-9.29-12-12-1.52-0.23-2.87-0.32-4.12-0.28z" fill="#16150F"/>
+      </svg>
+      <span class="brand-title">Limit-Switch</span>
+      <span class="brand-meta">Form Limiter</span>
+    </div>
 
-    <div>
-      <label for="limit">Set Response Limit:</label>
-      <input type="number" id="limit" min="1" placeholder="Leave empty to remove" value="<?= maxResponses === 'Not set' ? '' : maxResponses ?>" onkeydown="if(event.key === 'Enter') setLimit()">
-      <div class="btn-group">
-        <button onclick="setLimit()">Save Limit</button>
+    <!-- Notification Banner -->
+    <div id="statusBanner" class="status-banner" role="status" aria-live="polite"></div>
+
+    <!-- Response Limit Form Section -->
+    <div class="form-section">
+      <div class="section-label-row">
+        <label for="limit" class="field-label">Response Limit</label>
+        <span class="meta-status">Current: <span id="currentLimit"><?= maxResponses ?></span></span>
+      </div>
+      <input type="number" id="limit" min="1" placeholder="Leave empty for unlimited" value="<?= maxResponses === 'Not set' ? '' : maxResponses ?>" onkeydown="if(event.key === 'Enter') setLimit()">
+      <div class="btn-row">
+        <button type="button" class="btn-primary" onclick="setLimit()">Save Limit</button>
         <button type="button" class="btn-secondary" onclick="disableLimit()">Remove Limit</button>
       </div>
-      <p><strong>Current:</strong> <span class="current-value" id="currentLimit"><?= maxResponses ?></span></p>
-    </div>
-    
-    <div>
-      <label for="confirmationMessage">Confirmation Message:</label>
-      <input type="text" id="confirmationMessage" value="<?= confirmationMessage ?>" onkeydown="if(event.key === 'Enter') setMessage()">
-      <button onclick="setMessage()">Update Confirmation</button>
-      <p><strong>Current:</strong> <span class="current-value" id="currentConfirmationMessage"><?= confirmationMessage ?></span></p>
     </div>
 
-    <div>
-      <label for="closedMessage">Message when form is closed:</label>
-      <input type="text" id="closedMessage" value="<?= closedMessage ?>" onkeydown="if(event.key === 'Enter') setClosedMessage()">
-      <button onclick="setClosedMessage()">Update Closed Message</button>
-      <p><strong>Current:</strong> <span class="current-value" id="currentClosedMessage"><?= closedMessage ?></span></p>
+    <!-- Closed Message Section -->
+    <div class="form-section">
+      <div class="section-label-row">
+        <label for="closedMessage" class="field-label">Closed Form Message</label>
+      </div>
+      <input type="text" id="closedMessage" value="<?= closedMessage ?>" placeholder="This form is no longer accepting responses." onkeydown="if(event.key === 'Enter') setClosedMessage()">
+      <button type="button" class="btn-secondary btn-full" onclick="setClosedMessage()">Update Closed Message</button>
+    </div>
+
+    <!-- Confirmation Message Section -->
+    <div class="form-section">
+      <div class="section-label-row">
+        <label for="confirmationMessage" class="field-label">Confirmation Message</label>
+      </div>
+      <input type="text" id="confirmationMessage" value="<?= confirmationMessage ?>" placeholder="Your response has been recorded." onkeydown="if(event.key === 'Enter') setMessage()">
+      <button type="button" class="btn-secondary btn-full" onclick="setMessage()">Update Confirmation</button>
     </div>
   </div>
 
-  <div id="errorModal" class="modal-overlay">
-    <div class="modal-content">
-      <h3>Error Occurred</h3>
-      <p id="errorMessage"></p>
-      <button onclick="closeErrorModal()">Close</button>
+  <!-- Error Modal -->
+  <div id="errorModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modalTitle">Notice</h3>
+        <button type="button" class="modal-close" onclick="closeErrorModal()" aria-label="Close dialog">&times;</button>
+      </div>
+      <p id="errorMessage" class="modal-body"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" onclick="closeErrorModal()">Dismiss</button>
+      </div>
     </div>
   </div>
 
@@ -241,39 +447,44 @@
     }
 
     function handleSuccess(msg, callback) {
-      var statusDiv = document.getElementById("status");
-      statusDiv.style.color = 'green';
-      statusDiv.textContent = msg;
+      var banner = document.getElementById("statusBanner");
+      banner.className = "status-banner success";
+      banner.textContent = msg;
       if (callback) callback();
       setButtonsDisabled(false);
-      setTimeout(function() { statusDiv.textContent = ''; }, 3500);
+      setTimeout(function() {
+        banner.className = "status-banner";
+        banner.textContent = "";
+      }, 3500);
     }
 
     function handleFailure(error) {
-      var message = (typeof error === 'string') ? error : (error && error.message ? error.message : 'An unexpected error occurred.');
-      document.getElementById('errorMessage').textContent = message;
-      document.getElementById('errorModal').style.display = 'flex';
+      var message = (typeof error === "string") ? error : (error && error.message ? error.message : "An unexpected error occurred.");
+      document.getElementById("errorMessage").textContent = message;
+      document.getElementById("errorModal").style.display = "flex";
       setButtonsDisabled(false);
     }
-    
+
     function closeErrorModal() {
-      document.getElementById('errorModal').style.display = 'none';
+      document.getElementById("errorModal").style.display = "none";
     }
 
     function setButtonsDisabled(disabled) {
-      document.querySelectorAll('.container button').forEach(function(button) {
-        button.disabled = disabled;
-      });
+      var buttons = document.querySelectorAll(".container button");
+      for (var i = 0; i < buttons.length; i++) {
+        buttons[i].disabled = disabled;
+      }
     }
 
     function syncCount() {
       var syncBtn = document.getElementById("syncBtn");
       setButtonsDisabled(true);
       syncBtn.textContent = "Syncing...";
+
       google.script.run
         .withSuccessHandler(function(res) {
-          syncBtn.textContent = "🔄 Sync";
-          if (res && typeof res === 'object') {
+          syncBtn.textContent = "Sync";
+          if (res && typeof res === "object") {
             document.getElementById("currentResponseCount").textContent = res.count;
             updateStatusBadge(res.isAccepting);
             handleSuccess("Responses synced: " + res.count);
@@ -283,7 +494,7 @@
           }
         })
         .withFailureHandler(function(err) {
-          syncBtn.textContent = "🔄 Sync";
+          syncBtn.textContent = "Sync";
           handleFailure(err);
         })
         .syncResponseCount();
@@ -293,7 +504,6 @@
       var limitInput = document.getElementById("limit");
       var limitVal = limitInput.value.trim();
 
-      // Client-side validation: prevent negative or invalid numbers before network call
       if (limitVal !== "") {
         var num = parseInt(limitVal, 10);
         if (isNaN(num) || num <= 0) {
@@ -305,9 +515,14 @@
       setButtonsDisabled(true);
       google.script.run
         .withSuccessHandler(function(res) {
-          var msg = (typeof res === 'object' && res.message) ? res.message : res;
-          if (typeof res === 'object' && typeof res.isAccepting === 'boolean') {
-            updateStatusBadge(res.isAccepting);
+          var msg = (typeof res === "object" && res.message) ? res.message : res;
+          if (typeof res === "object") {
+            if (typeof res.isAccepting === "boolean") {
+              updateStatusBadge(res.isAccepting);
+            }
+            if (typeof res.count === "number") {
+              document.getElementById("currentResponseCount").textContent = res.count;
+            }
           }
           handleSuccess(msg, function() {
             document.getElementById("currentLimit").textContent = limitVal ? limitVal : "Not set";
@@ -324,9 +539,14 @@
       setButtonsDisabled(true);
       google.script.run
         .withSuccessHandler(function(res) {
-          var msg = (typeof res === 'object' && res.message) ? res.message : res;
-          if (typeof res === 'object' && typeof res.isAccepting === 'boolean') {
-            updateStatusBadge(res.isAccepting);
+          var msg = (typeof res === "object" && res.message) ? res.message : res;
+          if (typeof res === "object") {
+            if (typeof res.isAccepting === "boolean") {
+              updateStatusBadge(res.isAccepting);
+            }
+            if (typeof res.count === "number") {
+              document.getElementById("currentResponseCount").textContent = res.count;
+            }
           }
           handleSuccess(msg, function() {
             document.getElementById("limit").value = "";
@@ -341,7 +561,6 @@
       var messageInput = document.getElementById("confirmationMessage");
       var messageVal = messageInput.value.trim();
 
-      // Client-side validation
       if (!messageVal) {
         handleFailure("Confirmation message cannot be empty.");
         return;
@@ -350,13 +569,11 @@
       setButtonsDisabled(true);
       google.script.run
         .withSuccessHandler(function(res) {
-          var msg = (typeof res === 'object' && res.message) ? res.message : res;
-          if (typeof res === 'object' && typeof res.isAccepting === 'boolean') {
+          var msg = (typeof res === "object" && res.message) ? res.message : res;
+          if (typeof res === "object" && typeof res.isAccepting === "boolean") {
             updateStatusBadge(res.isAccepting);
           }
-          handleSuccess(msg, function() {
-            document.getElementById("currentConfirmationMessage").textContent = messageVal;
-          });
+          handleSuccess(msg);
         })
         .withFailureHandler(handleFailure)
         .setConfirmationMessage(messageVal);
@@ -366,7 +583,6 @@
       var messageInput = document.getElementById("closedMessage");
       var messageVal = messageInput.value.trim();
 
-      // Client-side validation
       if (!messageVal) {
         handleFailure("Closed form message cannot be empty.");
         return;
@@ -375,13 +591,11 @@
       setButtonsDisabled(true);
       google.script.run
         .withSuccessHandler(function(res) {
-          var msg = (typeof res === 'object' && res.message) ? res.message : res;
-          if (typeof res === 'object' && typeof res.isAccepting === 'boolean') {
+          var msg = (typeof res === "object" && res.message) ? res.message : res;
+          if (typeof res === "object" && typeof res.isAccepting === "boolean") {
             updateStatusBadge(res.isAccepting);
           }
-          handleSuccess(msg, function() {
-            document.getElementById("currentClosedMessage").textContent = messageVal;
-          });
+          handleSuccess(msg);
         })
         .withFailureHandler(handleFailure)
         .setClosedMessage(messageVal);

@@ -6,36 +6,11 @@ Registro de los puntos abiertos del proyecto, ordenados de mayor a menor critici
 
 | # | Punto | Severidad | Por qué está acá |
 | --- | --- | --- | --- |
-| 12 | Definir la identidad definitiva para el listado | Media | Los assets actuales provienen de la etapa "Limiter"; el Marketplace requiere ícono, banner y capturas |
-| 14 | Evaluar la internacionalización de la interfaz | Baja | La UI está únicamente en inglés; `useLocaleFromApp` está declarado pero no hay traducciones |
-| 15 | Definir la estrategia de pruebas del código | Baja | No existen pruebas automatizadas; solo el checklist manual del README |
 | 16 | Crear el release v1.0.0 | Baja | No hay tags ni notas de versión; corresponde al mergear el rebrand |
-| 5 | Publicar URLs y cumplimiento legal en dominio propio (Cloudflare) | Baja | Exigido por Google para verificar OAuth: dominio verificado en Search Console, cláusula Limited Use y borrado de datos |
 | 7 | Publicar el add-on en el Google Workspace Marketplace | Baja | Hoy solo existe en el proyecto de Apps Script: no hay forma de que otra persona lo instale (costo confirmado: $0 USD) |
 
 ---
 
-
-## 12. Definir la identidad definitiva para el listado
-
-**Estado:** abierto  
-**Severidad:** media
-
-Los assets existentes en `misc/` provienen de la etapa anterior del proyecto y no contienen texto visible, por lo que siguen siendo utilizables. Para el listado público conviene definir el conjunto definitivo (ícono de 128×128, banner y capturas de pantalla) siguiendo la estética del ícono actual.
-
-## 14. Internacionalización de la interfaz
-
-**Estado:** abierto  
-**Severidad:** baja
-
-La interfaz está en inglés, con `useLocaleFromApp` declarado pero sin traducciones. Si el alcance inicial es hispanohablante, evaluar una localización mínima (es-AR); si no, dejar documentado que el alcance es únicamente en inglés.
-
-## 15. Estrategia de pruebas
-
-**Estado:** abierto  
-**Severidad:** baja
-
-No hay pruebas automatizadas (Apps Script no incluye un runner nativo). Alternativas: mantener el checklist manual del README (situación actual) o automatizar verificaciones básicas con `clasp` y ejecución remota de funciones (`clasp run`) como paso previo a cada release.
 
 ## 16. Release v1.0.0
 
@@ -43,39 +18,6 @@ No hay pruebas automatizadas (Apps Script no incluye un runner nativo). Alternat
 **Severidad:** baja
 
 No existen tags ni releases. Al mergear las correcciones pendientes corresponde crear `v1.0.0` con notas de versión (rebrand, almacenamiento por formulario, correcciones de concurrencia, documentación).
-
-## 5. Publicar URLs públicas, landing page y cumplimiento legal en dominio propio (Cloudflare)
-
-**Estado:** abierto  
-**Severidad:** baja  
-**Archivos:** `docs/Privacy_policy.md`, `docs/Terms_of_service.md`
-
-### Qué falta
-
-El listado y la verificación de Google OAuth exigen que la Homepage, la Política de Privacidad y los Términos de Servicio estén publicados bajo un **dominio verificado en Google Search Console**. Hoy los documentos viven únicamente dentro del repositorio en Markdown y carecen de cláusulas mandatorias de Google Trust & Safety.
-
-### Propuesta y requisitos clave
-
-1. **Hosting en Cloudflare con dominio propio:**
-   - Desplegar la landing page y las políticas mediante Cloudflare Pages en el dominio propio del autor.
-   - En el panel DNS de Cloudflare, añadir el registro `TXT` para verificar el dominio en **Google Search Console** en segundos (paso obligatorio para que Google acepte el dominio en la consola de OAuth).
-   - Estructura de URLs recomendada:
-     - Homepage / Landing: `https://tudominio.com/limit-switch` (o subdominio `https://limit-switch.tudominio.com`).
-     - Política de Privacidad: `https://tudominio.com/limit-switch/privacy`.
-     - Términos de Servicio: `https://tudominio.com/limit-switch/terms`.
-
-2. **Cláusula obligatoria de "Limited Use" en Política de Privacidad:**
-   Google rechaza cualquier política que no incluya de forma visible y literal el compromiso con la política de datos de usuario de Google APIs:
-   > *"Limit-Switch's use and transfer to any other app of information received from Google APIs will adhere to [Google API Services User Data Policy](https://developers.google.com/terms/api-services-user-data-policy), including the Limited Use requirements."*
-
-3. **Sección explícita de Retención y Borrado de Datos (Data Retention & Deletion):**
-   Especificar que los datos de configuración se almacenan únicamente en el propio formulario mediante `DocumentProperties` y que se destruyen automáticamente cuando el usuario desinstala el add-on o elimina el formulario en Google Drive.
-
-4. **Consistencia de Identidad:**
-   El nombre de la aplicación (`Limit-Switch`) y el correo de soporte al usuario (`schkurkonicolas@gmail.com`) deben ser exactamente los mismos en la política, en los términos y en los campos de la pantalla de consentimiento de Google Cloud.
-
-5. **Requisitos de la Landing Page (Homepage):**
-   La página principal debe explicar qué hace el add-on y contar con enlaces claramente visibles en el pie de página hacia la Política de Privacidad y los Términos de Servicio.
 
 ## 7. Publicar el add-on en el Google Workspace Marketplace
 
@@ -106,6 +48,30 @@ Confirmado el desglose de costos:
 ---
 
 ## Corregidos
+
+### Landing page, Política de Privacidad y Términos integrados en portafolio — corregido 2026-10-28
+
+`limit-switch/index.html`, `limit-switch/privacy.html`, `limit-switch/terms.html` (antiguo ítem 5): Se crearon las 3 páginas públicas bajo la carpeta `limit-switch/` del repositorio de portafolio en Cloudflare Pages, heredando el estilo visual (`style.css`), tipografía y soporte de modo oscuro/claro del sitio web. Se cumplieron todos los requisitos estrictos de Google Trust & Safety:
+1. **Cláusula obligatoria de "Limited Use":** incorporada textualmente con enlace oficial a la política de datos de usuario de Google APIs.
+2. **Retención y borrado de datos:** sección explícita que detalla la eliminación automática de propiedades y triggers al desinstalar o borrar el formulario.
+3. **Consistencia de identidad:** nombre de la aplicación `Limit-Switch` y correo de soporte `schkurkonicolas@gmail.com`.
+4. **Landing page:** descripción completa con accesos visibles hacia Privacidad y Términos en el pie de página.
+
+### Estrategia de pruebas manuales E2E definida — resuelto 2026-10-27
+
+`TESTING_CHECKLIST.md`, `.gitignore` (antiguo ítem 15): Se creó una guía integral de pruebas End-to-End con 7 escenarios clave (flujo normal, mensajes cerrados, reapertura automática, cierre inmediato por desborde, eliminación limpia de triggers, botón de sincronización y validaciones de teclado) en `TESTING_CHECKLIST.md`, agregado al `.gitignore` para uso interno de control de calidad antes de cada release.
+
+### Assets gráficos de identidad para Marketplace configurados — corregido 2026-10-27
+
+`misc/`, `src/appsscript.json` (antiguo ítem 12): Se incorporaron los assets gráficos requeridos por la consola del Google Workspace Marketplace:
+- `misc/LimiterIcon.jpg`: ícono principal de la aplicación (128×128 px).
+- `misc/toolbar-icon.jpg`: ícono de barra de herramientas (32×32 px), vinculado en el manifest `src/appsscript.json` (`logoUrl`).
+- `misc/card-banner.jpg`: banner de portada para búsquedas y fichas de la tienda (220×140 px).
+Las capturas de pantalla promocionales se generarán con el add-on en funcionamiento dentro del formulario.
+
+### Alcance de internacionalización definido (Inglés global v1.0.0) — resuelto 2026-10-27
+
+`README.md` (antiguo ítem 14): Se definió que la versión v1.0.0 de Limit-Switch utilizará el idioma inglés como estándar global para garantizar máxima compatibilidad con todos los usuarios del Google Workspace Marketplace sin requerir mantenimiento complejo de múltiples catálogos de traducción. Se documentó esta decisión en las notas técnicas del `README.md`, dejando la localización a otros idiomas (como español) planificada para versiones posteriores.
 
 ### Mejoras de UX/UI en el diálogo de configuración — corregido 2026-10-27
 
