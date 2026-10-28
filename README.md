@@ -1,66 +1,90 @@
-# <img src="https://raw.githubusercontent.com/NicolasSchkurko/limit-switch/refs/heads/main/misc/Limiter.svg" alt="Limit-Switch logo" width="50"/> Limit-Switch
+# <img src="https://raw.githubusercontent.com/NicolasSchkurko/limit-switch/refs/heads/main/misc/Limiter.svg" alt="Limit-Switch logo" width="42"/> Limit-Switch
 
-A free Google Forms add-on to limit the number of responses a form will accept. Once the limit is reached, the form is closed automatically and a custom message is displayed to visitors.
+A lightweight, robust, and free Google Forms editor add-on that automatically stops accepting responses once a predefined response quota is reached. Once the limit is met, the form immediately switches to closed and displays a customizable message to visitors.
 
-> Currently being prepared for the Google Workspace Marketplace.
+---
 
 ### Features
-- **Set Response Limits:** easily set a maximum number of responses for your form.
-- **Automated Closing:** the add-on closes the form as soon as the limit is reached.
-- **Custom Messages:** customize both the confirmation message (after a successful submission) and the message shown when the form is closed.
-- **Per-Form Settings:** the limit and messages are stored with the form itself, so every form keeps its own configuration.
-- **Concurrency-Safe:** simultaneous submissions or settings changes can't exceed the limit or corrupt the configuration.
-- **Modern UI:** a clean, responsive, and easy-to-use interface to manage the settings.
+- **Strict Response Quota:** Set an exact numeric limit on allowed submissions.
+- **Automated Immediate Closure:** Automatically sets `Accepting Responses` to closed as soon as the quota is reached.
+- **Custom Closed & Confirmation Messages:** Set both the on-screen submission confirmation message and the custom message shown to respondents after the form is closed.
+- **Live Status & Sync:** Real-time top bar in the add-on dialog showing current response count, form status badge (`● Open` / `● Closed`), and a manual `Sync` button to recalibrate directly with Google's backend.
+- **Isolated Per-Form Storage:** Limits and settings are strictly scoped per form; multiple forms managed by the same account or organization never collide.
+- **Concurrency-Safe:** Background trigger executions and user configuration updates use Google Apps Script `LockService` to prevent race conditions.
+- **Clean Technical UI:** Minimalist, high-contrast aesthetic designed with clean typography, clear status indicators, and zero emojis.
+- **Free & Privacy-First:** 100% free, open source, with zero ads and zero third-party telemetry. All data stays strictly within your Google account.
+
+---
 
 ### How to Use
-- **Install the Add-on:** from the Google Workspace Marketplace (listing coming soon).
-- **Open the Add-on:** in your Google Form, click on the puzzle piece icon (Add-ons), select "Limit-Switch," and then click "⚙️ Configure Limiter."
-- **Set the Limit:** in the dialog, enter the maximum number of responses you want to accept in the "Set Response Limit" field and click "Save Limit."
-- **Customize Messages (Optional):** you can also update the confirmation message and the message that will be shown once the form is closed. Click the corresponding "Update" button to save each message.
+1. **Open Limit-Switch:** Inside your Google Form editor, click the Add-ons icon (puzzle piece), select **Limit-Switch**, and click **Configure Limiter**.
+2. **Set the Response Limit:** Enter the desired maximum number of responses and click **Set Response Limit**.
+   - If the form currently has fewer responses than the limit, the limiter activates and ensures the form is open for submissions.
+   - If the form already has equal to or more responses than the limit, the add-on closes the form immediately.
+3. **Customize Messages (Optional):**
+   - **Closed Form Message:** Customize what visitors see when navigating to a closed form. Click **Update Closed Message**.
+   - **Confirmation Message:** Customize what submitters see immediately after submitting. Click **Update Confirmation**.
+4. **Remove Limit:** To let the form accept unlimited responses, leave the limit field blank or click **Disable Limit**. This clears the threshold and removes the submission trigger.
 
-The add-on will then monitor new submissions. When the total number of responses reaches the limit you set, it will automatically stop accepting new responses.
+---
 
-### Technical Notes
-This section documents some specific behaviors and design choices.
+### Architecture & Technical Details
 
-**Per-Form Storage**
-- Settings are stored with `PropertiesService.getDocumentProperties()`, which is scoped to the Google Form where the add-on is installed. Two forms using the add-on never share their limits or messages.
+#### Per-Form Storage & Isolation
+- **Primary Storage:** Configuration is stored directly inside the Google Form's container via `PropertiesService.getDocumentProperties()`.
+- **Trigger Execution Fallback:** Installable `onFormSubmit` triggers run in asynchronous execution contexts where the container document is unbound. For trigger runs, settings fallback to `PropertiesService.getScriptProperties()` strictly keyed by the form ID (`<formId>_maxResponses` and `<formId>_responseCount`).
+- Global and unscoped property access is strictly prevented, ensuring complete isolation across different forms and users.
 
-**Updating the "Closed Form" Message**
-- **Problem:** The Google Apps Script API can throw an error if you try to modify the closed-form message while the form is already closed.
-- **Solution:** To work around this, the function temporarily re-opens the form, applies the new message, and then immediately closes it again. This is almost invisible to the user and ensures the message can be updated at any time.
+#### Form Lifecycle & Trigger Policies
+- **Reaching the Limit:** When a submission causes total responses to meet or exceed the quota, the background trigger executes `form.setAcceptingResponses(false)` and terminates further acceptance.
+- **Increasing the Quota:** If a form was closed because it reached its quota, setting a new, higher limit via `setMaxResponses()` automatically reopens the form (`form.setAcceptingResponses(true)`).
+- **Manual Sync Safety:** The `Sync` function recalibrates the response count directly with Google Forms. To preserve administrative intent and prevent race conditions with Google Forms replication latency, `Sync` will close a form that reached its quota, but **never automatically reopens a closed form**.
 
-**Preventing Race Conditions**
-- The add-on uses Google’s LockService to serialize settings changes and submissions. Simultaneous submissions near the limit are resolved by chronological order of arrival: responses within the quota are always kept, and only genuine excess submissions are deleted.
+#### Concurrency
+- All state transitions and trigger evaluations acquire an exclusive script lock via `LockService.getScriptLock()` with a 30-second timeout.
+- Background triggers calculate response counts using `Math.max(previousCount + 1, liveCount)` to account for Google Forms database replication lag during rapid concurrent submissions.
 
-**Dynamic Limit Adjustments and Form Lifecycle**
-- **Raising the limit:** If the form was previously closed because it reached its limit, setting a higher limit automatically reopens the form (`form.setAcceptingResponses(true)`) so visitors can immediately submit responses without requiring manual intervention in Google Forms settings.
-- **Lowering the limit:** If the limit is set to or below the current number of responses, the add-on immediately closes the form (`form.setAcceptingResponses(false)`). This guarantees that new respondents do not waste time filling out a form that would discard their submissions.
-- **Removing the limit:** Setting an empty value, `0`, or clicking "Remove Limit" clears the limit and cleans up background triggers.
+---
 
-**Language and Localization (i18n)**
-- For release v1.0.0, the user interface and system notifications are provided exclusively in English to ensure consistent global compatibility across all Google Workspace locales. Additional languages (including Spanish) are planned for future updates.
+### Development & Deployment
 
-**Linked Google Sheets — Known Limitation**
-- If your form is connected to a Google Sheet (via _Responses → Link to Sheets_), be aware that deleteResponse() in Google Apps Script **only removes the response from the form’s internal store**. The corresponding row in the linked spreadsheet is **not deleted automatically**. This is a platform-level constraint of the Google Forms / Sheets API.
-- In practice this means: if a submission arrives over the limit and is rejected by the add-on, the form’s response count will be correct, but the linked sheet may contain one extra row for that rejected submission. You can safely delete that row manually from the spreadsheet without affecting the add-on’s behavior.
+The source code is organized under `src/`:
+- `src/actions.js`: Limit management, storage access, messaging, and synchronization logic.
+- `src/triggers.js`: Background `onFormSubmit` trigger handlers and trigger lifecycle management.
+- `src/main.js`: Menus (`onOpen`, `onInstall`) and dialog rendering.
+- `src/index.html`: Client-side dialog UI and styles.
+- `src/appsscript.json`: Add-on manifest with OAuth scopes and Google Forms add-on configuration.
 
-### Development
-The source lives in `src/`; the add-on manifest is `src/appsscript.json`.
+#### Pushing to Google Apps Script
+```bash
+# Push source code to the active Google Apps Script project
+clasp push --force
 
-- With [clasp](https://github.com/google/clasp): point `rootDir` to `src/` and run `clasp push`.
-- Without clasp: create a Forms add-on project in the Apps Script editor and copy the files.
+# Create a new immutable version
+clasp version "V1.0.2 - Description"
 
-Before deploying a change, verify:
-1. With a limit of N, submit N times: the form closes and keeps all N responses.
-2. Submit once more: the extra response is deleted.
-3. Open a second form with the add-on: its limit and messages are independent from the first one.
+# Update existing deployment
+clasp deploy -i <DEPLOYMENT_ID> -V <VERSION_NUMBER>
+```
 
-Open items and pending decisions are tracked in [PENDING.md](PENDING.md) (also available in [Spanish](PENDIENTES.md)).
+---
 
-### Legal
-- [Privacy Policy](docs/Privacy_policy.md)
-- [Terms of Service](docs/Terms_of_service.md)
+### Verification & Testing Checklist
+1. Open a Google Form with 0 responses and set the limit to `3`. The status badge displays `● Open`.
+2. Submit 3 test responses. Upon the 3rd submission, the form closes automatically.
+3. Attempt a 4th submission; Google Forms shows the custom closed-form message.
+4. Click **Sync** in the add-on settings; the form remains closed and displays `3` responses.
+5. Increase the limit to `5`; the form automatically reopens and displays `● Open`.
+6. Click **Disable Limit**; the quota is removed and background triggers are cleaned up.
+
+---
+
+### Legal & Documentation
+- **Home & Documentation:** [https://nschkurko.com/limit-switch/](https://nschkurko.com/limit-switch/)
+- **Privacy Policy:** [https://nschkurko.com/limit-switch/privacy.html](https://nschkurko.com/limit-switch/privacy.html) (Local: [docs/Privacy_policy.md](docs/Privacy_policy.md))
+- **Terms of Service:** [https://nschkurko.com/limit-switch/terms.html](https://nschkurko.com/limit-switch/terms.html) (Local: [docs/Terms_of_service.md](docs/Terms_of_service.md))
+
+---
 
 ### License
-This project is licensed under the GNU General Public License v3.0.
+This project is open source and licensed under the [GNU General Public License v3.0](LICENSE).
