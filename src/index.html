@@ -4,234 +4,588 @@
   <base target="_top">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    html {
-      box-sizing: border-box;
-      font-size: 16px; 
-    }
-    *, *:before, *:after {
-      box-sizing: inherit;
-    }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: #f9f9f9;
-      margin: 0;
-      padding: 1.25rem;
-      line-height: 1.5;
-    }
-    .container {
-      background-color: white;
-      padding: 1.25rem;
-      border-radius: 0.5rem;
-      box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.08);
-      width: 100%;
-      margin: auto;
-    }
-    h2 {
-      text-align: center;
-      color: #2c3e50;
-      margin-top: 0;
-      font-size: clamp(1.25rem, 5vw, 1.6rem);
-    }
-    .logo-png {
-      display: block;
-      margin: 0 auto 0; 
-      width: 6rem;         
-      height: 6rem;
-      object-fit: contain; 
-    }
-    .info-bar { 
-      text-align: center;
-      background-color: #f1f3f5;
-      padding: 0.75rem;
-      border-radius: 0.375rem;
-      margin-bottom: 1.25rem;
-      font-size: 0.9rem;
-    }
-    label {
-      font-size: 1rem;
-      font-weight: 600;
-      margin-top: 1.25rem;
-      margin-bottom: 0.5rem;
-      display: block;
-      color: #34495e;
-    }
-    input[type="number"], input[type="text"] {
-      width: 100%;
-      padding: 0.75rem;
-      margin-bottom: 0.5rem;
-      border: 1px solid #bdc3c7;
-      border-radius: 0.375rem;
-      font-size: 1rem;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-    input:focus {
-      outline: none;
-      border-color: #007bff;
-      box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
-    }
-    button {
-      background-color: #007bff;
-      color: white;
-      padding: 0.75rem 1.25rem;
-      border: none;
-      border-radius: 0.375rem;
-      cursor: pointer;
-      font-size: 1rem;
-      font-weight: 600;
-      transition: background-color 0.2s, opacity 0.2s;
-      width: 100%;
-      margin-top: 0.5rem; 
-    }
-    button:hover { background-color: #0056b3; }
-    button:disabled {
-      background-color: #5a9ed8;
-      cursor: not-allowed;
-      opacity: 0.7;
-    }
-    p {
-      margin: 0.3rem 0;
-      color: #7f8c8d;
-      font-size: 0.9rem;
-    }
-    .current-value {
-      font-weight: 600;
-      color: #007bff;
-    }
-    #status {
-      text-align: center;
-      font-weight: bold;
-      min-height: 1.5rem;
-      margin-bottom: 1rem;
+    :root {
+      --ink: #16150f;
+      --ink-secondary: #4a4942;
+      --muted: #717069;
+      --line: rgba(22, 21, 15, 0.12);
+      --line-strong: rgba(22, 21, 15, 0.22);
+      --surface: #f9f8f6;
+      --surface-hover: #f1f0ec;
+      --green-bg: #e6f4ea;
+      --green-text: #137333;
+      --green-line: rgba(19, 115, 51, 0.25);
+      --red-bg: #fce8e6;
+      --red-text: #c5221f;
+      --red-line: rgba(197, 34, 31, 0.25);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
 
-    /* Estilos del modal */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--sans);
+      color: var(--ink);
+      background-color: #ffffff;
+      padding: 14px 16px;
+      line-height: 1.45;
+      font-size: 13px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 420px;
+      margin: 0 auto;
+    }
+
+    /* Top Bar: Responses | Status | Sync */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin-bottom: 12px;
+    }
+
+    .top-bar-left {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    .top-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .count-value {
+      font-family: var(--mono);
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--ink);
+    }
+
+    .top-bar-center {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    .badge-open {
+      background-color: var(--green-bg);
+      color: var(--green-text);
+      border: 1px solid var(--green-line);
+    }
+
+    .badge-closed {
+      background-color: var(--red-bg);
+      color: var(--red-text);
+      border: 1px solid var(--red-line);
+    }
+
+    .top-bar-right {
+      display: flex;
+      align-items: center;
+    }
+
+    .btn-sync {
+      font-family: var(--sans);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ink);
+      background-color: #ffffff;
+      border: 1px solid var(--line-strong);
+      border-radius: 5px;
+      padding: 4px 10px;
+      cursor: pointer;
+      transition: background-color 0.15s ease, border-color 0.15s ease;
+    }
+
+    .btn-sync:hover {
+      background-color: var(--surface-hover);
+      border-color: var(--ink);
+    }
+
+    /* Brand Header */
+    .brand-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 12px;
+    }
+
+    .brand-logo {
+      width: 22px;
+      height: 22px;
+      color: var(--ink);
+      flex-shrink: 0;
+    }
+
+    .brand-title {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+    }
+
+    .brand-meta {
+      margin-left: auto;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    /* Notification Banner */
+    .status-banner {
+      display: none;
+      padding: 7px 10px;
+      border-radius: 5px;
+      font-size: 12px;
+      font-weight: 500;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+
+    .status-banner.success {
+      display: block;
+      background-color: var(--green-bg);
+      color: var(--green-text);
+      border: 1px solid var(--green-line);
+    }
+
+    .status-banner.error {
+      display: block;
+      background-color: var(--red-bg);
+      color: var(--red-text);
+      border: 1px solid var(--red-line);
+    }
+
+    /* Form Sections */
+    .form-section {
+      margin-bottom: 12px;
+    }
+
+    .section-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 4px;
+    }
+
+    .field-label {
+      font-family: var(--mono);
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--ink-secondary);
+    }
+
+    .meta-status {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .meta-status span {
+      font-family: var(--mono);
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    input[type="number"], input[type="text"] {
+      width: 100%;
+      padding: 7px 9px;
+      font-family: var(--sans);
+      font-size: 13px;
+      color: var(--ink);
+      background-color: #ffffff;
+      border: 1px solid var(--line-strong);
+      border-radius: 5px;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--ink);
+      box-shadow: 0 0 0 2px rgba(22, 21, 15, 0.08);
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 5px;
+    }
+
+    .btn-primary {
+      flex: 1;
+      background-color: var(--ink);
+      color: #ffffff;
+      border: 1px solid var(--ink);
+      border-radius: 5px;
+      padding: 7px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.15s ease;
+    }
+
+    .btn-primary:hover {
+      background-color: #2c2b24;
+    }
+
+    .btn-secondary {
+      background-color: #ffffff;
+      color: var(--ink);
+      border: 1px solid var(--line-strong);
+      border-radius: 5px;
+      padding: 7px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.15s ease, border-color 0.15s ease;
+    }
+
+    .btn-secondary:hover {
+      background-color: var(--surface);
+      border-color: var(--ink);
+    }
+
+    .btn-full {
+      width: 100%;
+      margin-top: 5px;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Error Modal */
     .modal-overlay {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background-color: rgba(0, 0, 0, 0.5);
-      display: none; justify-content: center; align-items: center;
-      z-index: 1000; padding: 1rem;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(22, 21, 15, 0.45);
+      backdrop-filter: blur(2px);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      padding: 16px;
     }
-    .modal-content {
-      background: white; padding: 1.5rem; border-radius: 0.5rem;
-      box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.3);
-      width: 100%; max-width: 25rem; text-align: center;
+
+    .modal-card {
+      background: #ffffff;
+      padding: 16px 18px;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      box-shadow: 0 8px 24px rgba(22, 21, 15, 0.12);
+      width: 100%;
+      max-width: 340px;
     }
-    .modal-content h3 { margin-top: 0; color: #c0392b; }
-    .modal-content p { color: #34495e; font-size: 1rem; }
-    .modal-content button {
-      margin-top: 1rem; background-color: #c0392b; width: auto; padding: 0.5rem 1.5rem;
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
     }
-    .modal-content button:hover { background-color: #a93226; }
+
+    .modal-header h3 {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--red-text);
+      font-family: var(--mono);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 18px;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 0 4px;
+      line-height: 1;
+    }
+
+    .modal-body {
+      color: var(--ink-secondary);
+      font-size: 12.5px;
+      line-height: 1.45;
+      margin-bottom: 12px;
+      word-break: break-word;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h2>Limit-Switch</h2>
-
-    <img class="logo-png" src="https://raw.githubusercontent.com/NicolasSchkurko/limit-switch/refs/heads/main/misc/LimiterUiLogo.png" alt="Logo">
-
-    <div class="info-bar">
-      <strong>Current responses:</strong> 
-      <span class="current-value"><?= currentResponses ?></span>
+    <!-- Top Status Bar: Responses (Left) | Status (Center) | Sync (Right) -->
+    <div class="top-bar">
+      <div class="top-bar-left">
+        <span class="top-label">Responses:</span>
+        <span class="count-value" id="currentResponseCount"><?= currentResponses ?></span>
+      </div>
+      <div class="top-bar-center">
+        <span id="formStatusBadge" class="status-badge <?= isAccepting ? 'badge-open' : 'badge-closed' ?>">
+          <?= isAccepting ? '● Open' : '● Closed' ?>
+        </span>
+      </div>
+      <div class="top-bar-right">
+        <button type="button" id="syncBtn" class="btn-sync" onclick="syncCount()" title="Recalibrate live response count directly from Google Forms">Sync</button>
+      </div>
     </div>
 
-    <div id="status"></div>
-
-    <div>
-      <label for="limit">Set Response Limit:</label>
-      <input type="number" id="limit" min="1" value="<?= maxResponses === 'Not set' ? '' : maxResponses ?>">
-      <button onclick="setLimit()">Save Limit</button>
-      <p><strong>Current:</strong> <span class="current-value" id="currentLimit"><?= maxResponses ?></span></p>
-    </div>
-    
-    <div>
-      <label for="confirmationMessage">Confirmation Message:</label>
-      <input type="text" id="confirmationMessage" value="<?= confirmationMessage ?>">
-      <button onclick="setMessage()">Update Confirmation</button>
-      <p><strong>Current:</strong> <span class="current-value" id="currentConfirmationMessage"><?= confirmationMessage ?></span></p>
+    <!-- Brand Header -->
+    <div class="brand-header">
+      <svg class="brand-logo" xmlns="http://www.w3.org/2000/svg" viewBox="140 140 680 680" aria-hidden="true">
+        <path d="m687.52 191.79c-3.76 0.13-6.6 1.43-10.49 3.81q-2.37 1.46-4.81 2.78c-87.7 48.49-175.26 97.68-262.58 146.69-11.73 5.83-11.73 5.83-25.07 5.68-0.27 0-56.34 0.2-60.57 0.19-4.86 0.01-7.04 0.53-10.46 3.94-6.07 7.46-6.05 17.93-5.87 27.1-19.91-0.06-5.4 0.09-44.82-0.02-18.79 0.16-19.58 10.05-19.6 24.39q0.01 1.36 0.02 2.68c-0.2 71.82 0.19 143.64 0.11 215.45-0.04 9.63 0.12 27.24 25.85 26.94 2.97 0.02 7.66 0.03 13.85 0.04v97.53 5.26q0-0.35 0.01-0.7 0-0.35 0.02-0.7 0.02-0.35 0.04-0.7 0.02-0.34 0.05-0.69c0.21 2.08 0.68 4.1 1.38 5.94 0.71 1.85 1.65 3.51 2.76 4.88 1.12 1.38 2.4 2.47 3.79 3.2 1.39 0.74 2.85 1.12 4.33 1.12 1.48 0 2.95-0.38 4.34-1.12 1.38-0.74 2.67-1.82 3.78-3.2 1.12-1.38 2.05-3.03 2.76-4.88 0.71-1.85 1.18-3.86 1.38-5.95q0.03 0.35 0.06 0.71 0.02 0.35 0.04 0.7 0.01 0.35 0.02 0.71 0.01 0.35 0.01 0.71v-5.29-97.53c37.37-0.02 95.91-0.11 160.92-0.19v98.82 5.26q0-0.35 0.01-0.7 0.01-0.35 0.03-0.7 0.01-0.35 0.03-0.7 0.03-0.35 0.06-0.69c0.2 2.08 0.67 4.1 1.38 5.94 0.71 1.85 1.64 3.5 2.76 4.88 1.12 1.38 2.4 2.47 3.79 3.2 1.38 0.74 2.85 1.12 4.33 1.12 1.48 0 2.95-0.38 4.33-1.12 1.39-0.74 2.67-1.82 3.79-3.2 1.12-1.38 2.05-3.03 2.76-4.88 0.7-1.85 1.17-3.86 1.38-5.95q0.03 0.35 0.05 0.71 0.03 0.35 0.04 0.7 0.02 0.35 0.03 0.71 0.01 0.35 0.01 0.71v-5.29-98.85c50.32-0.05 103.3-0.09 152.53-0.06v97.47 5.26q0-0.35 0.01-0.7 0.01-0.35 0.02-0.7 0.02-0.35 0.04-0.69 0.02-0.35 0.06-0.7c0.2 2.08 0.67 4.1 1.38 5.95 0.71 1.84 1.64 3.5 2.76 4.88 1.12 1.38 2.4 2.46 3.78 3.2 1.39 0.73 2.86 1.11 4.34 1.11 1.48 0 2.95-0.38 4.33-1.12 1.39-0.73 2.67-1.82 3.79-3.2 1.11-1.38 2.05-3.03 2.75-4.88 0.71-1.85 1.18-3.86 1.39-5.94q0.03 0.35 0.05 0.7 0.03 0.35 0.04 0.7 0.02 0.36 0.03 0.71 0 0.36 0.01 0.71v-5.29-97.46c10.35 0.01 20.48 0.03 30.32 0.04 0 0 15.11 0.2 15.25-15.88 0.07-189.04 0.03-41.38 0.09-197.29-0.24-13.18-7.22-28.86-23.35-29.41-1.24 0.01-1.24 0.01-2.45 0.02-68.03-0.42-136.05-0.2-204.08-0.6-1.91-4.75-4.44-9.15-6.92-13.61-1.91-2.87-3.65-5.92-6.08-8.39-4.69-3.16-8.91-4.46-14.54-4.45-0.79 0.02-28.1 0.4-30.46 0.45 0.53-9.89 0.58-10.6 1-13 28.54-14.27 190.55-107.49 260.99-145.25 3.65-1.97 7.01-3.84 10.01-6.75 3.49-4.33 3.35-7.65 3-13-1.87-5.62-6.88-9.29-12-12-1.52-0.23-2.87-0.32-4.12-0.28z" fill="#16150F"/>
+      </svg>
+      <span class="brand-title">Limit-Switch</span>
+      <span class="brand-meta">Form Limiter</span>
     </div>
 
-    <div>
-      <label for="closedMessage">Message when form is closed:</label>
-      <input type="text" id="closedMessage" value="<?= closedMessage ?>">
-      <button onclick="setClosedMessage()">Update Closed Message</button>
-      <p><strong>Current:</strong> <span class="current-value" id="currentClosedMessage"><?= closedMessage ?></span></p>
+    <!-- Notification Banner -->
+    <div id="statusBanner" class="status-banner" role="status" aria-live="polite"></div>
+
+    <!-- Response Limit Form Section -->
+    <div class="form-section">
+      <div class="section-label-row">
+        <label for="limit" class="field-label">Response Limit</label>
+        <span class="meta-status">Current: <span id="currentLimit"><?= maxResponses ?></span></span>
+      </div>
+      <input type="number" id="limit" min="1" placeholder="Leave empty for unlimited" value="<?= maxResponses === 'Not set' ? '' : maxResponses ?>" onkeydown="if(event.key === 'Enter') setLimit()">
+      <div class="btn-row">
+        <button type="button" class="btn-primary" onclick="setLimit()">Save Limit</button>
+        <button type="button" class="btn-secondary" onclick="disableLimit()">Remove Limit</button>
+      </div>
+    </div>
+
+    <!-- Closed Message Section -->
+    <div class="form-section">
+      <div class="section-label-row">
+        <label for="closedMessage" class="field-label">Closed Form Message</label>
+      </div>
+      <input type="text" id="closedMessage" value="<?= closedMessage ?>" placeholder="This form is no longer accepting responses." onkeydown="if(event.key === 'Enter') setClosedMessage()">
+      <button type="button" class="btn-secondary btn-full" onclick="setClosedMessage()">Update Closed Message</button>
+    </div>
+
+    <!-- Confirmation Message Section -->
+    <div class="form-section">
+      <div class="section-label-row">
+        <label for="confirmationMessage" class="field-label">Confirmation Message</label>
+      </div>
+      <input type="text" id="confirmationMessage" value="<?= confirmationMessage ?>" placeholder="Your response has been recorded." onkeydown="if(event.key === 'Enter') setMessage()">
+      <button type="button" class="btn-secondary btn-full" onclick="setMessage()">Update Confirmation</button>
     </div>
   </div>
 
-  <div id="errorModal" class="modal-overlay">
-    <div class="modal-content">
-      <h3>Error Occurred</h3>
-      <p id="errorMessage"></p>
-      <button onclick="closeErrorModal()">Close</button>
+  <!-- Error Modal -->
+  <div id="errorModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modalTitle">Notice</h3>
+        <button type="button" class="modal-close" onclick="closeErrorModal()" aria-label="Close dialog">&times;</button>
+      </div>
+      <p id="errorMessage" class="modal-body"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" onclick="closeErrorModal()">Dismiss</button>
+      </div>
     </div>
   </div>
 
   <script>
+    function updateStatusBadge(isAccepting) {
+      var badge = document.getElementById("formStatusBadge");
+      if (!badge) return;
+      if (isAccepting) {
+        badge.className = "status-badge badge-open";
+        badge.textContent = "● Open";
+      } else {
+        badge.className = "status-badge badge-closed";
+        badge.textContent = "● Closed";
+      }
+    }
+
     function handleSuccess(msg, callback) {
-      var statusDiv = document.getElementById("status");
-      statusDiv.style.color = 'green';
-      statusDiv.textContent = msg;
+      var banner = document.getElementById("statusBanner");
+      banner.className = "status-banner success";
+      banner.textContent = msg;
       if (callback) callback();
       setButtonsDisabled(false);
-      setTimeout(function() { statusDiv.textContent = ''; }, 3000);
+      setTimeout(function() {
+        banner.className = "status-banner";
+        banner.textContent = "";
+      }, 3500);
     }
 
     function handleFailure(error) {
-      document.getElementById('errorMessage').textContent = error.message || 'An unexpected error occurred.';
-      document.getElementById('errorModal').style.display = 'flex';
+      var message = (typeof error === "string") ? error : (error && error.message ? error.message : "An unexpected error occurred.");
+      document.getElementById("errorMessage").textContent = message;
+      document.getElementById("errorModal").style.display = "flex";
       setButtonsDisabled(false);
     }
-    
+
     function closeErrorModal() {
-      document.getElementById('errorModal').style.display = 'none';
+      document.getElementById("errorModal").style.display = "none";
     }
 
     function setButtonsDisabled(disabled) {
-      document.querySelectorAll('.container button').forEach(function(button) {
-        button.disabled = disabled;
-      });
+      var buttons = document.querySelectorAll(".container button");
+      for (var i = 0; i < buttons.length; i++) {
+        buttons[i].disabled = disabled;
+      }
+    }
+
+    function applyServerResponse(res) {
+      if (res && typeof res === "object") {
+        if (typeof res.isAccepting === "boolean") {
+          updateStatusBadge(res.isAccepting);
+        }
+        if (typeof res.count === "number") {
+          document.getElementById("currentResponseCount").textContent = res.count;
+        }
+        return res.message || "";
+      }
+      return (typeof res === "string") ? res : "";
+    }
+
+    function syncCount() {
+      var syncBtn = document.getElementById("syncBtn");
+      setButtonsDisabled(true);
+      syncBtn.textContent = "Syncing...";
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          syncBtn.textContent = "Sync";
+          applyServerResponse(res);
+          var count = (res && typeof res === "object" && typeof res.count === "number") ? res.count : res;
+          handleSuccess("Responses synced: " + count);
+        })
+        .withFailureHandler(function(err) {
+          syncBtn.textContent = "Sync";
+          handleFailure(err);
+        })
+        .syncResponseCount();
     }
 
     function setLimit() {
+      var limitInput = document.getElementById("limit");
+      var limitVal = limitInput.value.trim();
+
+      if (limitVal !== "") {
+        var num = parseInt(limitVal, 10);
+        if (isNaN(num) || num <= 0) {
+          handleFailure("Please enter a valid number greater than zero, or leave empty to remove the limit.");
+          return;
+        }
+      }
+
       setButtonsDisabled(true);
-      var limit = document.getElementById("limit").value;
       google.script.run
-        .withSuccessHandler(function(msg) {
+        .withSuccessHandler(function(res) {
+          var msg = applyServerResponse(res);
           handleSuccess(msg, function() {
-            document.getElementById("currentLimit").textContent = limit || "Not set";
+            document.getElementById("currentLimit").textContent = limitVal ? limitVal : "Not set";
+            if (!limitVal) {
+              limitInput.value = "";
+            }
           });
         })
         .withFailureHandler(handleFailure)
-        .setMaxResponses(limit);
+        .setMaxResponses(limitVal);
+    }
+
+    function disableLimit() {
+      setButtonsDisabled(true);
+      google.script.run
+        .withSuccessHandler(function(res) {
+          var msg = applyServerResponse(res);
+          handleSuccess(msg, function() {
+            document.getElementById("limit").value = "";
+            document.getElementById("currentLimit").textContent = "Not set";
+          });
+        })
+        .withFailureHandler(handleFailure)
+        .removeLimit();
     }
 
     function setMessage() {
+      var messageInput = document.getElementById("confirmationMessage");
+      var messageVal = messageInput.value.trim();
+
+      if (!messageVal) {
+        handleFailure("Confirmation message cannot be empty.");
+        return;
+      }
+
       setButtonsDisabled(true);
-      var message = document.getElementById("confirmationMessage").value;
       google.script.run
-        .withSuccessHandler(function(msg) {
-          handleSuccess(msg, function() {
-            document.getElementById("currentConfirmationMessage").textContent = message;
-          });
+        .withSuccessHandler(function(res) {
+          var msg = applyServerResponse(res);
+          handleSuccess(msg);
         })
         .withFailureHandler(handleFailure)
-        .setConfirmationMessage(message);
+        .setConfirmationMessage(messageVal);
     }
 
     function setClosedMessage() {
+      var messageInput = document.getElementById("closedMessage");
+      var messageVal = messageInput.value.trim();
+
+      if (!messageVal) {
+        handleFailure("Closed form message cannot be empty.");
+        return;
+      }
+
       setButtonsDisabled(true);
-      var message = document.getElementById("closedMessage").value;
       google.script.run
-        .withSuccessHandler(function(msg) {
-          handleSuccess(msg, function() {
-            document.getElementById("currentClosedMessage").textContent = message;
-          });
+        .withSuccessHandler(function(res) {
+          var msg = applyServerResponse(res);
+          handleSuccess(msg);
         })
         .withFailureHandler(handleFailure)
-        .setClosedMessage(message);
+        .setClosedMessage(messageVal);
     }
   </script>
 </body>
 </html>
-

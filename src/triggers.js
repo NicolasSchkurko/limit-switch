@@ -1,53 +1,76 @@
-var formProperties = PropertiesService.getDocumentProperties();
-
 /**
- * Checks if the response limit has been reached every time the form is submitted.
- * @param {object} e The event parameter for an onFormSubmit trigger.
+ * Trigger handler executed automatically on every form submission.
+ * Enforces response limit and closes the form when reached.
+ * @param {object} e The onFormSubmit event object.
  */
 function checkResponseLimit(e) {
+  if (!e) return;
+
   var lock = LockService.getScriptLock();
-  lock.waitLock(30000); // Wait for any other modifications to finish.
+  lock.waitLock(30000);
+
   try {
-    var form = FormApp.getActiveForm();
+    var form = (e && e.source) ? e.source : FormApp.getActiveForm();
+    if (!form) return;
 
-    if (!form.isAcceptingResponses()) {
-      form.deleteResponse(e.response.getId());
-      return;
-    }
-
-    var maxResponses = parseInt(formProperties.getProperty('maxResponses') || '0', 10);
+    var formId = form.getId();
+    var maxResponses = getLimitNumber(formId);
     if (maxResponses <= 0) return;
 
-    var currentResponseCount = form.getResponses().length;
+    var prevCount = parseInt(getStoredProperty(formId, 'responseCount') || '0', 10);
+    var liveResponses = form.getResponses();
+    var liveCount = liveResponses ? liveResponses.length : 0;
+    var totalCount = Math.max(prevCount + 1, liveCount);
 
-    if (currentResponseCount > maxResponses) {
-      form.setAcceptingResponses(false);
-      form.deleteResponse(e.response.getId());
+    setStoredProperty(formId, 'responseCount', totalCount.toString());
+
+    if (totalCount >= maxResponses) {
+      ensureFormClosed(form);
     }
-    else if (currentResponseCount == maxResponses) {
-      form.setAcceptingResponses(false);
-    }
+  } catch (err) {
+    console.error('Limit-Switch checkResponseLimit error: ' + err.toString());
   } finally {
-    lock.releaseLock(); // Release the lock
+    lock.releaseLock();
   }
 }
 
+/**
+ * Removes all checkResponseLimit triggers associated with this form.
+ * @param {FormApp.Form} [form] The form instance.
+ */
+function deleteTrigger(form) {
+  var activeForm = form || FormApp.getActiveForm();
+  if (!activeForm) return;
+  var formId = activeForm.getId();
+
+  var triggers = ScriptApp.getProjectTriggers();
+  for (var i = 0; i < triggers.length; i++) {
+    var t = triggers[i];
+    if (t.getHandlerFunction() === 'checkResponseLimit') {
+      try {
+        var sourceId = t.getTriggerSourceId();
+        if (!sourceId || sourceId === formId) {
+          ScriptApp.deleteTrigger(t);
+        }
+      } catch (e) {
+        ScriptApp.deleteTrigger(t);
+      }
+    }
+  }
+}
 
 /**
- * Creates an onFormSubmit trigger for the checkResponseLimit function if it doesn't exist.
+ * Creates an onFormSubmit trigger for the form, cleaning any existing one first.
+ * @param {FormApp.Form} [form] The form instance.
  */
-function setTrigger() {
-  var formId = FormApp.getActiveForm().getId();
-  var triggers = ScriptApp.getProjectTriggers();
-  var triggerExists = triggers.some(function(trigger) {
-    return trigger.getHandlerFunction() === 'checkResponseLimit' &&
-           trigger.getTriggerSourceId() === formId;
-  });
+function setTrigger(form) {
+  var activeForm = form || FormApp.getActiveForm();
+  if (!activeForm) return;
 
-  if (!triggerExists) {
-    ScriptApp.newTrigger('checkResponseLimit')
-      .forForm(FormApp.getActiveForm())
-      .onFormSubmit()
-      .create();
-  }
+  deleteTrigger(activeForm);
+
+  ScriptApp.newTrigger('checkResponseLimit')
+    .forForm(activeForm)
+    .onFormSubmit()
+    .create();
 }

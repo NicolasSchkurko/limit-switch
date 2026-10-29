@@ -7,12 +7,5 @@
     "https://www.googleapis.com/auth/script.container.ui",
     "https://www.googleapis.com/auth/forms.currentonly",
     "https://www.googleapis.com/auth/script.scriptapp"
-  ],
-  "addOns": {
-    "common": {
-      "name": "Limit-Switch",
-      "logoUrl": "https://github.com/NicolasSchkurko/limit-switch/blob/main/misc/LimiterIcon.jpg?raw=true",
-      "useLocaleFromApp": true
-    }
-  }
+  ]
 }
