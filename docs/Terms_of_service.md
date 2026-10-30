@@ -1,5 +1,5 @@
 # Terms of Service for Limit-Switch
-**Last Updated:** October 2026
+**Version:** 1.3 | **Last Updated:** October 2026
 
 Please read these Terms of Service ("Terms") carefully before using the Limit-Switch Google Forms add-on (the "Service") operated by NicolasSchkurko ("us", "we", or "our").
 
