@@ -1,42 +1,97 @@
 # Privacy Policy for Limit-Switch
-**Last Updated:** October 2026
 
-This Privacy Policy describes how Limit-Switch ("we," "us," or "our") handles information in connection with the Limit-Switch Google Forms add-on (the "Service"). Our commitment is to protect your privacy and handle any data with transparency.
+**Version:** 1.3 | **Last Updated:** October 2026
 
-### 1. Information We Do Not Collect
-We believe in minimal data collection. The Service **does not** collect, store, or transmit any personal identifying information about you or your form respondents. This includes, but is not limited to:
-- Names, email addresses, or other personal details.
-- The actual content of your form responses.
-- Any data you or your users enter into the form.
+This Privacy Policy describes how Limit-Switch ("we," "us," or "our"), an independent Google Forms™ Editor Add-on developed by Nicolas Schkurko, handles information and user data in connection with the Limit-Switch add-on (the "Service"). Our commitment is absolute data minimization, transparent processing, and robust protection of user data.
 
-### 2. Information We Access (But Do Not Store)
-To function, the Service requires access to certain metadata about your Google Form. This access is granted by you when you authorize the add-on. The Service accesses the following:
-- **Form Responses:** The Service counts the total number of responses to determine if the limit has been reached. It only accesses the count, not the content of the responses themselves.
-- **Form Properties:** The Service needs to read and modify the form's settings, such as the confirmation message, the closed-form message, and whether the form is accepting responses.
+---
+
+### 1. Google API Services User Data Policy & Limited Use Disclosure
+
+Limit-Switch's use and transfer to any other app of information received from Google APIs adheres to the [Google API Services User Data Policy](https://developers.google.com/terms/api-services-user-data-policy), including the **Limited Use** requirements.
+
+We explicitly affirm:
+- **No Human Review:** We never allow humans to read Google user data.
+- **No Advertising:** Google user data is never used or transferred for serving advertisements, retargeting, personalized advertising, or marketing.
+- **No AI / Model Training:** Google user data is never used to train, retrain, or improve machine learning or artificial intelligence models.
+- **No Sale or Commercial Transfer:** Google user data is never sold, rented, leased, or transferred to third-party data brokers or advertising networks.
+
+---
+
+### 2. Information We Access and How We Use Google User Data
+
+Limit-Switch accesses only the minimum Google user data strictly required to deliver the core response limiter functionality, based on permissions granted by you via Google OAuth:
+
+#### Authorized OAuth Scopes:
+- `https://www.googleapis.com/auth/forms.currentonly`: Grants access strictly to the single Google Form where you open the add-on. It does not grant access to your Google Drive, other forms, or your account files.
+- `https://www.googleapis.com/auth/script.container.ui`: Allows rendering the configuration dialog within the Google Forms editor interface.
+- `https://www.googleapis.com/auth/script.scriptapp`: Allows creating and managing the installable `onFormSubmit` trigger that evaluates limits in the background upon each submission.
+
+#### How Google User Data is Accessed and Used:
+- **Form Response Counter:** The Service accesses the total count of submitted responses (`form.getResponses().length`) to verify whether total responses have reached your configured quota. The actual text, answers, or uploaded files of respondents are **never accessed, read, parsed, or logged**.
+- **Form Status Management:** The Service reads the current acceptance state (`form.isAcceptingResponses()`) and calls `form.setAcceptingResponses(false)` to automatically close the form when the quota is reached, or `form.setAcceptingResponses(true)` when you explicitly increase the quota.
+- **Form Messaging:** The Service reads and sets the custom confirmation message and the custom closed-form message as entered by you in the settings panel.
+
+All processing occurs in volatile execution memory during Google Apps Script execution and is discarded immediately after function return.
+
+---
 
 ### 3. Information We Store
-The Service stores only the configuration settings you provide directly within the add-on's interface. This data is stored using Google's built-in `PropertiesService` (`DocumentProperties`), scoped to the specific Google Form where the add-on is installed. This data includes:
-- The maximum number of responses you set (the "limit").
 
-This information is stored solely for the functioning of the add-on and is not shared with any third parties.
+The Service stores only the configuration values you provide directly in the add-on dialog:
+- **Maximum Response Limit (`maxResponses`):** The numerical threshold at which the form should automatically close.
+- **Response Count Cache (`responseCount`):** A cached numeric integer used by background triggers to prevent race conditions during rapid submissions.
 
-### 4. Data Usage
-The information accessed is used exclusively to:
-- Check the current number of responses against the limit you set.
-- Automatically close the form when the limit is reached.
-- Modify the form's confirmation and closed-form messages as configured by you.
-- Create a trigger that runs the check on each new form submission.
+These values are stored exclusively within Google's internal `PropertiesService` stores:
+1. **`DocumentProperties` (Primary):** Scoped exclusively to the container Google Form where the add-on is running.
+2. **`ScriptProperties` (Fallback for Triggers):** Strictly keyed by the unique form ID (`<formId>_maxResponses`), ensuring complete isolation between forms and users.
 
-### 5. Data Sharing
-We do not share any data with third parties. All data and metadata accessed by the Service remain within your Google Account and are processed by Google's infrastructure as part of the Google Apps Script execution.
+We operate **no external servers, no third-party databases, and no remote storage**. All configuration data stays permanently within your Google Workspace™ account infrastructure.
 
-### 6. Security
-We rely on the security measures provided by Google Workspace to protect your information. The add-on operates entirely within the secure environment of Google Apps Script.
+---
 
-### 7. Changes to This Privacy Policy
-We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page. You are advised to review this Privacy Policy periodically for any changes.
+### 4. Data Protection Mechanisms for Sensitive Data
 
-### 8. Contact Us
-If you have any questions about this Privacy Policy, please contact us at:
+To protect all data and Google user data, Limit-Switch enforces strict technical, organizational, and architectural safeguards:
 
-**Email:** `schkurkonicolas@gmail.com`
+- **Encryption in Transit:** All communication between your client browser and Google APIs is strictly encrypted using modern Transport Layer Security (**TLS 1.2 and TLS 1.3**) over HTTPS.
+- **Encryption at Rest:** All persistent configuration settings are stored inside Google's enterprise-grade cloud storage infrastructure, protected by Google's native **AES-256 server-side encryption at rest**.
+- **Serverless Runtime Sandboxing:** The add-on executes entirely inside Google's sandboxed V8 execution environment (Google Apps Script). No external JavaScript bundles, CDNs, third-party analytics (like Google Analytics or Mixpanel), or tracking scripts are loaded.
+- **Principle of Least Privilege:** By utilizing the restricted `forms.currentonly` scope, the add-on's access is technically restricted to only the form currently active in the user's browser, preventing cross-document data leakage.
+- **Authentication & Access Control:** Configuration and execution are governed by Google's native OAuth 2.0 framework. Only authenticated Google users with explicit edit permissions on the Google Form can execute the add-on or modify settings.
+- **Concurrency & State Protection:** Critical state transitions and trigger evaluations are guarded by Google's `LockService.getScriptLock()` to prevent race conditions or data corruption during concurrent submissions.
+
+---
+
+### 5. Data Sharing and Third-Party Disclosure
+
+We **do not share, transfer, or disclose** any Google user data or form metadata to any third party:
+- No data is sent to external servers or APIs.
+- No analytics or telemetry libraries are embedded in the add-on.
+- Processing is performed 100% within Google's cloud infrastructure.
+
+---
+
+### 6. Data Retention and Deletion
+
+Because all configuration data resides directly inside your Google Form property store, you maintain complete ownership and lifecycle control:
+- **Disabling the Limit:** Clearing the limit field or clicking "Disable Limit" immediately removes the quota and deletes the `onFormSubmit` background trigger.
+- **Uninstalling the Add-on:** Uninstalling Limit-Switch halts all future executions. You can revoke OAuth authorization at any time via your [Google Account Third-Party Apps](https://myaccount.google.com/permissions) page.
+- **Deleting the Form:** Deleting the Google Form permanently deletes its associated property store and triggers from Google's servers.
+
+---
+
+### 7. Trademark Attribution
+
+Google Forms™, Google Workspace™, Google Drive™, and Google Apps Script™ are trademarks of Google LLC. Limit-Switch is an independent add-on developed by Nicolas Schkurko and is not affiliated with, sponsored by, or endorsed by Google LLC.
+
+---
+
+### 8. Contact & Security Inquiries
+
+If you have questions, feedback, or security-related inquiries regarding this Privacy Policy or data protection practices, please contact the developer:
+
+- **Developer:** Nicolas Schkurko
+- **Email:** `schkurkonicolas@gmail.com`
+- **Website & Documentation:** [https://nschkurko.com/limit-switch/](https://nschkurko.com/limit-switch/)
+- **Source Code Repository:** [https://github.com/NicolasSchkurko/limit-switch](https://github.com/NicolasSchkurko/limit-switch)
