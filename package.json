@@ -1,0 +1,9 @@
+{
+  "name": "limit-switch",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Google Forms add-on that enforces a best-effort response quota.",
+  "scripts": {
+    "test": "node --test"
+  }
+}

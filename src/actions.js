@@ -1,6 +1,7 @@
 /**
- * Retrieves a property value supporting DocumentProperties (primary) and ScriptProperties (fallback).
- * @param {string} [formId] Form ID for scoping in ScriptProperties.
+ * Retrieves a property value supporting DocumentProperties (primary) and UserProperties (fallback).
+ * Falls back once to the legacy ScriptProperties store and migrates the value if found.
+ * @param {string} [formId] Form ID for scoping in UserProperties.
  * @param {string} key Property key.
  * @returns {string|null} The property value.
  */
@@ -17,27 +18,39 @@ function getStoredProperty(formId, key) {
 
   if (formId) {
     try {
-      var scriptProps = PropertiesService.getScriptProperties();
-      if (scriptProps) {
-        var sVal = scriptProps.getProperty(formId + '_' + key);
-        if (sVal !== null && sVal !== undefined && sVal !== '') {
-          return sVal;
+      var userProps = PropertiesService.getUserProperties();
+      if (userProps) {
+        var scopedKey = formId + '_' + key;
+        var uVal = userProps.getProperty(scopedKey);
+        if (uVal !== null && uVal !== undefined && uVal !== '') {
+          return uVal;
+        }
+
+        var legacy = PropertiesService.getScriptProperties();
+        var lVal = legacy ? legacy.getProperty(scopedKey) : null;
+        if (lVal !== null && lVal !== undefined && lVal !== '') {
+          userProps.setProperty(scopedKey, lVal);
+          return lVal;
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error('Limit-Switch property read failed (' + key + '): ' + e);
+    }
   }
 
   return null;
 }
 
 /**
- * Persists a property value across DocumentProperties and ScriptProperties.
- * @param {string} [formId] Form ID for scoping in ScriptProperties.
+ * Persists a property value across DocumentProperties and UserProperties.
+ * @param {string} [formId] Form ID for scoping in UserProperties.
  * @param {string} key Property key.
  * @param {string} val Property value.
+ * @returns {boolean} Whether the form-scoped (UserProperties) write succeeded.
  */
 function setStoredProperty(formId, key, val) {
   var stringVal = (val === null || val === undefined) ? '' : val.toString();
+  var saved = false;
 
   try {
     var docProps = PropertiesService.getDocumentProperties();
@@ -48,17 +61,22 @@ function setStoredProperty(formId, key, val) {
 
   if (formId) {
     try {
-      var scriptProps = PropertiesService.getScriptProperties();
-      if (scriptProps) {
-        scriptProps.setProperty(formId + '_' + key, stringVal);
+      var userProps = PropertiesService.getUserProperties();
+      if (userProps) {
+        userProps.setProperty(formId + '_' + key, stringVal);
+        saved = true;
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error('Limit-Switch property write failed (' + key + '): ' + e);
+    }
   }
+
+  return saved;
 }
 
 /**
- * Deletes a property from both DocumentProperties and ScriptProperties.
- * @param {string} [formId] Form ID for scoping in ScriptProperties.
+ * Deletes a property from DocumentProperties, UserProperties and the legacy ScriptProperties store.
+ * @param {string} [formId] Form ID for scoping in UserProperties.
  * @param {string} key Property key.
  */
 function deleteStoredProperty(formId, key) {
@@ -71,9 +89,17 @@ function deleteStoredProperty(formId, key) {
 
   if (formId) {
     try {
-      var scriptProps = PropertiesService.getScriptProperties();
-      if (scriptProps) {
-        scriptProps.deleteProperty(formId + '_' + key);
+      var userProps = PropertiesService.getUserProperties();
+      if (userProps) {
+        userProps.deleteProperty(formId + '_' + key);
+      }
+    } catch (e) {
+      console.error('Limit-Switch property delete failed (' + key + '): ' + e);
+    }
+    try {
+      var legacy = PropertiesService.getScriptProperties();
+      if (legacy) {
+        legacy.deleteProperty(formId + '_' + key);
       }
     } catch (e) {}
   }
@@ -92,15 +118,32 @@ function getLimitNumber(formId) {
 
 /**
  * Ensures the form is marked as closed if it is currently accepting responses.
+ * Records that the limiter closed the form so it can be safely reopened later.
  * @param {FormApp.Form} form Form instance.
  * @returns {boolean} Whether the status was toggled from open to closed.
  */
 function ensureFormClosed(form) {
   if (form && form.isAcceptingResponses()) {
     form.setAcceptingResponses(false);
+    setStoredProperty(form.getId(), 'closedByLimiter', '1');
     return true;
   }
   return false;
+}
+
+/**
+ * Determines whether the form was closed by the limiter rather than by its owner.
+ * For forms closed by older versions that predate the flag, infers it from the stored limit.
+ * @param {string} formId Form ID.
+ * @param {number} liveCount Current response count.
+ * @param {number} limitNumber Previously stored limit (0 if none).
+ * @returns {boolean} Whether the limiter closed the form.
+ */
+function wasClosedByLimiter(formId, liveCount, limitNumber) {
+  if (getStoredProperty(formId, 'closedByLimiter') === '1') {
+    return true;
+  }
+  return limitNumber > 0 && liveCount >= limitNumber;
 }
 
 /**
@@ -118,24 +161,27 @@ function getAndSyncResponseCount(form) {
 }
 
 /**
- * Wraps an action within a script lock and standardizes error handling.
+ * Wraps an action within a per-user lock and standardizes error handling.
  * @param {Function} actionFn Callback to execute while holding lock.
  * @param {number} [timeoutMs=30000] Maximum lock wait time.
  * @returns {*} Return value of actionFn.
  */
-function withScriptLock(actionFn, timeoutMs) {
-  var lock = LockService.getScriptLock();
-  lock.waitLock(timeoutMs || 30000);
+function withUserLock(actionFn, timeoutMs) {
+  var lock = LockService.getUserLock();
+  var locked = false;
 
   try {
+    lock.waitLock(timeoutMs || 30000);
+    locked = true;
     return actionFn();
   } catch (e) {
-    if (e.message && e.message.includes('PERMISSION_DENIED')) {
+    var message = (e && e.message) ? e.message : String(e);
+    if (message.includes('PERMISSION_DENIED')) {
       throw new Error('Permission Error: Please ensure you are logged into only one Google account and try again.');
     }
-    throw new Error(e.message);
+    throw new Error(message);
   } finally {
-    lock.releaseLock();
+    if (locked) lock.releaseLock();
   }
 }
 
@@ -149,14 +195,37 @@ function clearLimitInternal() {
     throw new Error('Active form could not be found.');
   }
   var formId = form.getId();
+  var previousLimit = getLimitNumber(formId);
+  var count = getAndSyncResponseCount(form);
+  var reopen = wasClosedByLimiter(formId, count, previousLimit);
+
   deleteStoredProperty(formId, 'maxResponses');
   deleteTrigger(form);
-  var count = getAndSyncResponseCount(form);
+
+  if (reopen) {
+    form.setAcceptingResponses(true);
+    deleteStoredProperty(formId, 'closedByLimiter');
+  }
+
   return {
-    message: 'Response limit removed successfully.',
+    message: 'Response limit removed successfully.' + (reopen ? ' Form is now accepting responses.' : ''),
     isAccepting: form.isAcceptingResponses(),
     count: count
   };
+}
+
+/**
+ * Persists the limit and current count, throwing if the form-scoped store rejects the write.
+ * @param {string} formId Form ID.
+ * @param {number} limitNumber Response limit.
+ * @param {number} liveCount Current response count.
+ */
+function persistLimit(formId, limitNumber, liveCount) {
+  var savedLimit = setStoredProperty(formId, 'maxResponses', limitNumber.toString());
+  var savedCount = setStoredProperty(formId, 'responseCount', liveCount.toString());
+  if (!savedLimit || !savedCount) {
+    throw new Error('Could not save the response limit. Please try again.');
+  }
 }
 
 /**
@@ -165,7 +234,7 @@ function clearLimitInternal() {
  * @returns {object} Result with message, accepting status and response count.
  */
 function setMaxResponses(limit) {
-  return withScriptLock(function() {
+  return withUserLock(function() {
     var form = FormApp.getActiveForm();
     if (!form) {
       throw new Error('Active form could not be found.');
@@ -176,17 +245,17 @@ function setMaxResponses(limit) {
       return clearLimitInternal();
     }
 
-    var limitNumber = parseInt(limit, 10);
-    if (isNaN(limitNumber) || limitNumber <= 0) {
+    var limitNumber = Number(limit);
+    if (!Number.isInteger(limitNumber) || limitNumber <= 0) {
       return clearLimitInternal();
     }
 
+    var previousLimit = getLimitNumber(formId);
     var liveCount = form.getResponses().length;
 
     if (liveCount >= limitNumber) {
+      persistLimit(formId, limitNumber, liveCount);
       deleteTrigger(form);
-      setStoredProperty(formId, 'maxResponses', limitNumber.toString());
-      setStoredProperty(formId, 'responseCount', liveCount.toString());
       ensureFormClosed(form);
 
       return {
@@ -204,6 +273,8 @@ function setMaxResponses(limit) {
       }
     } catch (e) {}
 
+    persistLimit(formId, limitNumber, liveCount);
+
     try {
       setTrigger(form);
     } catch (trigErr) {
@@ -215,18 +286,14 @@ function setMaxResponses(limit) {
       throw new Error('Could not set limiter trigger: ' + trigErr.message);
     }
 
-    setStoredProperty(formId, 'maxResponses', limitNumber.toString());
-    setStoredProperty(formId, 'responseCount', liveCount.toString());
-
-    var isAcceptingNow = form.isAcceptingResponses();
-    if (!isAcceptingNow) {
+    if (!form.isAcceptingResponses() && wasClosedByLimiter(formId, liveCount, previousLimit)) {
       form.setAcceptingResponses(true);
-      isAcceptingNow = true;
+      deleteStoredProperty(formId, 'closedByLimiter');
     }
 
     return {
       message: 'Limit set to ' + limitNumber + ' responses.',
-      isAccepting: isAcceptingNow,
+      isAccepting: form.isAcceptingResponses(),
       count: liveCount
     };
   });
@@ -237,7 +304,7 @@ function setMaxResponses(limit) {
  * @returns {object} Result with message and current form accepting status.
  */
 function removeLimit() {
-  return withScriptLock(function() {
+  return withUserLock(function() {
     return clearLimitInternal();
   });
 }
@@ -248,7 +315,7 @@ function removeLimit() {
  * @returns {object} Result with message and form accepting status.
  */
 function setConfirmationMessage(message) {
-  return withScriptLock(function() {
+  return withUserLock(function() {
     if (messageIsEmpty(message)) {
       throw new Error('Confirmation message cannot be empty.');
     }
@@ -267,7 +334,7 @@ function setConfirmationMessage(message) {
  * @returns {object} Result with message and form accepting status.
  */
 function setClosedMessage(message) {
-  return withScriptLock(function() {
+  return withUserLock(function() {
     if (messageIsEmpty(message)) {
       throw new Error('Closed form message cannot be empty.');
     }
@@ -286,7 +353,7 @@ function setClosedMessage(message) {
  * @returns {object} Result with actual response count and form accepting status.
  */
 function syncResponseCount() {
-  return withScriptLock(function() {
+  return withUserLock(function() {
     var form = FormApp.getActiveForm();
     if (!form) {
       throw new Error('Active form could not be found.');
@@ -298,14 +365,6 @@ function syncResponseCount() {
     if (maxResponses > 0 && actualCount >= maxResponses) {
       ensureFormClosed(form);
     }
-
-    try {
-      var scriptProps = PropertiesService.getScriptProperties();
-      if (scriptProps) {
-        scriptProps.deleteProperty('maxResponses');
-        scriptProps.deleteProperty('responseCount');
-      }
-    } catch (e) {}
 
     return {
       count: actualCount,

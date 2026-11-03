@@ -1,19 +1,19 @@
 /**
- * Creates menu entries in the Google Forms UI when the form is opened.
+ * Creates the add-on menu when the form is opened.
  * @param {object} e The onOpen event object.
  */
 function onOpen(e) {
-  var ui = FormApp.getUi();
+  if (e && e.authMode === ScriptApp.AuthMode.NONE) {
+    return;
+  }
   try {
-    ui.createMenu('Limit-Switch')
+    FormApp.getUi()
+      .createAddonMenu()
       .addItem('Configure Limiter', 'showLimitDialog')
       .addToUi();
-  } catch (err) {}
-  try {
-    ui.createAddonMenu()
-      .addItem('Configure Limiter', 'showLimitDialog')
-      .addToUi();
-  } catch (err) {}
+  } catch (err) {
+    console.error('Limit-Switch onOpen error: ' + err.toString());
+  }
 }
 
 /**
@@ -23,35 +23,6 @@ function onOpen(e) {
 function onInstall(e) {
   onOpen(e);
   showLimitDialog();
-}
-
-function install() {
-  onInstall();
-}
-
-function configure() {
-  showLimitDialog();
-}
-
-function help() {
-  showHelpDialog();
-}
-
-/**
- * Displays a modal dialog with help and documentation.
- */
-function showHelpDialog() {
-  var ui = FormApp.getUi();
-  ui.alert(
-    'Limit-Switch Help & Documentation',
-    'Limit-Switch manages response quotas for Google Forms.\n\n' +
-    '• Set Response Limit: Sets quota. The form automatically closes upon reaching this limit.\n' +
-    '• Closed Message: Message displayed to users attempting to access a closed form.\n' +
-    '• Confirmation Message: Message displayed upon successful submission.\n' +
-    '• Sync: Recalibrates live response counts directly with Google Forms.\n\n' +
-    'Documentation & Privacy: https://nschkurko.com/limit-switch/',
-    ui.ButtonSet.OK
-  );
 }
 
 /**

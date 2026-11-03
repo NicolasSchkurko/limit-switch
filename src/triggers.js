@@ -1,4 +1,9 @@
 /**
+ * Number of recent response IDs kept per form to make trigger execution idempotent.
+ */
+var PROCESSED_RESPONSES_LIMIT = 20;
+
+/**
  * Trigger handler executed automatically on every form submission.
  * Enforces response limit and closes the form when reached.
  * @param {object} e The onFormSubmit event object.
@@ -6,10 +11,13 @@
 function checkResponseLimit(e) {
   if (!e) return;
 
-  var lock = LockService.getScriptLock();
-  lock.waitLock(30000);
+  var lock = LockService.getUserLock();
+  var locked = false;
 
   try {
+    lock.waitLock(30000);
+    locked = true;
+
     var form = (e && e.source) ? e.source : FormApp.getActiveForm();
     if (!form) return;
 
@@ -17,20 +25,74 @@ function checkResponseLimit(e) {
     var maxResponses = getLimitNumber(formId);
     if (maxResponses <= 0) return;
 
+    var responseId = (e.response && typeof e.response.getId === 'function') ? e.response.getId() : null;
+    if (responseId && wasResponseProcessed(formId, responseId)) return;
+
     var prevCount = parseInt(getStoredProperty(formId, 'responseCount') || '0', 10);
-    var liveResponses = form.getResponses();
-    var liveCount = liveResponses ? liveResponses.length : 0;
-    var totalCount = Math.max(prevCount + 1, liveCount);
+    var totalCount;
+
+    if (form.isAcceptingResponses() && prevCount >= maxResponses) {
+      // Counter drifted above the limit (for example, responses were deleted).
+      // Reconcile against Google Forms before counting this submission.
+      totalCount = form.getResponses().length;
+    } else {
+      totalCount = prevCount + 1;
+    }
 
     setStoredProperty(formId, 'responseCount', totalCount.toString());
 
     if (totalCount >= maxResponses) {
       ensureFormClosed(form);
     }
+
+    if (responseId) {
+      rememberResponse(formId, responseId);
+    }
   } catch (err) {
     console.error('Limit-Switch checkResponseLimit error: ' + err.toString());
   } finally {
-    lock.releaseLock();
+    if (locked) lock.releaseLock();
+  }
+}
+
+/**
+ * Determines whether a response was already counted by a previous trigger run.
+ * @param {string} formId Form ID.
+ * @param {string} responseId Response ID.
+ * @returns {boolean} Whether the response was already processed.
+ */
+function wasResponseProcessed(formId, responseId) {
+  return getProcessedResponseIds(formId).indexOf(responseId) !== -1;
+}
+
+/**
+ * Records a response ID so duplicate trigger deliveries are ignored.
+ * Keeps a bounded list to avoid unbounded property growth.
+ * @param {string} formId Form ID.
+ * @param {string} responseId Response ID.
+ */
+function rememberResponse(formId, responseId) {
+  var ids = getProcessedResponseIds(formId);
+  ids.push(responseId);
+  if (ids.length > PROCESSED_RESPONSES_LIMIT) {
+    ids = ids.slice(ids.length - PROCESSED_RESPONSES_LIMIT);
+  }
+  setStoredProperty(formId, 'processedResponses', JSON.stringify(ids));
+}
+
+/**
+ * Reads the bounded list of processed response IDs for a form.
+ * @param {string} formId Form ID.
+ * @returns {string[]} Processed response IDs.
+ */
+function getProcessedResponseIds(formId) {
+  var raw = getStoredProperty(formId, 'processedResponses');
+  if (!raw) return [];
+  try {
+    var parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    return [];
   }
 }
 
