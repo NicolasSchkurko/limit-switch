@@ -5,8 +5,8 @@ A lightweight, robust, and free Google Forms editor add-on that automatically st
 ---
 
 ### Features
-- **Strict Response Quota:** Set an exact numeric limit on allowed submissions.
-- **Automated Immediate Closure:** Automatically sets `Accepting Responses` to closed as soon as the quota is reached.
+- **Best-Effort Response Quota:** Set a numeric limit on allowed submissions. Google Forms has no synchronous submit hook, so a few extra responses may arrive under heavy concurrency before the background trigger closes the form.
+- **Automatic Closure:** Sets `Accepting Responses` to closed as soon as the background trigger detects the quota is reached.
 - **Custom Closed & Confirmation Messages:** Set both the on-screen submission confirmation message and the custom message shown to respondents after the form is closed.
 - **Live Status & Sync:** Real-time top bar in the add-on dialog showing current response count, form status badge (`● Open` / `● Closed`), and a manual `Sync` button to recalibrate directly with Google's backend.
 - **Isolated Per-Form Storage:** Limits and settings are strictly scoped per form; multiple forms managed by the same account or organization never collide.
@@ -32,16 +32,17 @@ A lightweight, robust, and free Google Forms editor add-on that automatically st
 
 #### Per-Form Storage & Isolation
 - **Primary Storage:** Configuration is stored directly inside the Google Form's container via `PropertiesService.getDocumentProperties()`.
-- **Trigger Execution Fallback:** Installable `onFormSubmit` triggers run in asynchronous execution contexts where the container document is unbound. For trigger runs, settings fallback to `PropertiesService.getScriptProperties()` strictly keyed by the form ID (`<formId>_maxResponses` and `<formId>_responseCount`).
+- **Trigger Execution Fallback:** Installable `onFormSubmit` triggers run in asynchronous execution contexts where the container document is unbound. For trigger runs, settings fallback to `PropertiesService.getUserProperties()` strictly keyed by the form ID (`<formId>_maxResponses` and `<formId>_responseCount`).
+- **Legacy Migration:** Limits saved by older versions in `PropertiesService.getScriptProperties()` are read once and copied to `UserProperties` the first time they are accessed.
 - Global and unscoped property access is strictly prevented, ensuring complete isolation across different forms and users.
 
 #### Form Lifecycle & Trigger Policies
-- **Reaching the Limit:** When a submission causes total responses to meet or exceed the quota, the background trigger executes `form.setAcceptingResponses(false)` and terminates further acceptance.
-- **Increasing the Quota:** If a form was closed because it reached its quota, setting a new, higher limit via `setMaxResponses()` automatically reopens the form (`form.setAcceptingResponses(true)`).
+- **Reaching the Limit:** When a submission causes total responses to meet or exceed the quota, the background trigger executes `form.setAcceptingResponses(false)` and terminates further acceptance. Because `onFormSubmit` triggers run asynchronously, the quota is best-effort: submissions that land before the trigger runs are still accepted.
+- **Increasing the Quota:** If a form was closed by the limiter, setting a new, higher limit via `setMaxResponses()` reopens it (`form.setAcceptingResponses(true)`). Forms the owner closed manually are left closed. `Remove Limit` applies the same rule.
 - **Manual Sync Safety:** The `Sync` function recalibrates the response count directly with Google Forms. To preserve administrative intent and prevent race conditions with Google Forms replication latency, `Sync` will close a form that reached its quota, but **never automatically reopens a closed form**.
 
 #### Concurrency
-- All state transitions and trigger evaluations acquire an exclusive script lock via `LockService.getScriptLock()` with a 30-second timeout.
+- All state transitions and trigger evaluations acquire an exclusive per-user lock via `LockService.getUserLock()` with a 30-second timeout, so tenants never block each other.
 - Background triggers calculate response counts using `Math.max(previousCount + 1, liveCount)` to account for Google Forms database replication lag during rapid concurrent submissions.
 
 ---
@@ -65,6 +66,13 @@ clasp version "V1.0.2 - Description"
 
 # Update existing deployment
 clasp deploy -i <DEPLOYMENT_ID> -V <VERSION_NUMBER>
+```
+
+#### Tests
+The limit logic is covered by dependency-free Node tests (nothing to install):
+
+```bash
+npm test
 ```
 
 ---
