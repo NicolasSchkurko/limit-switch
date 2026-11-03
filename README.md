@@ -1,6 +1,8 @@
-# <img src="https://raw.githubusercontent.com/NicolasSchkurko/limit-switch/refs/heads/main/misc/Limiter.svg" alt="Limit-Switch logo" width="42"/> Limit-Switch
+# <img src="https://raw.githubusercontent.com/NicolasSchkurko/limit-switch/refs/heads/main/misc/logo.svg" alt="Limit-Switch logo" width="42"/> Limit-Switch
 
 A lightweight, robust, and free Google Forms editor add-on that automatically stops accepting responses once a predefined response quota is reached. Once the limit is met, the form immediately switches to closed and displays a customizable message to visitors.
+
+👉 **[Install Limit-Switch from Google Workspace Marketplace](https://workspace.google.com/marketplace/app/limit_switch/1041132526220)**
 
 ---
 
@@ -17,14 +19,15 @@ A lightweight, robust, and free Google Forms editor add-on that automatically st
 ---
 
 ### How to Use
-1. **Open Limit-Switch:** Inside your Google Form editor, click the Add-ons icon (puzzle piece), select **Limit-Switch**, and click **Configure Limiter**.
-2. **Set the Response Limit:** Enter the desired maximum number of responses and click **Set Response Limit**.
+1. **Install the Add-on:** Add [Limit-Switch from Google Workspace Marketplace](https://workspace.google.com/marketplace/app/limit_switch/1041132526220).
+2. **Open Limit-Switch:** Inside your Google Form editor, click the Add-ons icon (puzzle piece), select **Limit-Switch**, and click **Configure Limiter**.
+3. **Set the Response Limit:** Enter the desired maximum number of responses and click **Set Response Limit**.
    - If the form currently has fewer responses than the limit, the limiter activates and ensures the form is open for submissions.
    - If the form already has equal to or more responses than the limit, the add-on closes the form immediately.
-3. **Customize Messages (Optional):**
+4. **Customize Messages (Optional):**
    - **Closed Form Message:** Customize what visitors see when navigating to a closed form. Click **Update Closed Message**.
    - **Confirmation Message:** Customize what submitters see immediately after submitting. Click **Update Confirmation**.
-4. **Remove Limit:** To let the form accept unlimited responses, leave the limit field blank or click **Disable Limit**. This clears the threshold and removes the submission trigger.
+5. **Remove Limit:** To let the form accept unlimited responses, leave the limit field blank or click **Disable Limit**. This clears the threshold and removes the submission trigger.
 
 ---
 
@@ -61,7 +64,7 @@ The source code is organized under `src/`:
 clasp push --force
 
 # Create a new immutable version
-clasp version "V1.0.2 - Description"
+clasp version "V1.0.3 - Marketplace Release"
 
 # Update existing deployment
 clasp deploy -i <DEPLOYMENT_ID> -V <VERSION_NUMBER>
@@ -80,6 +83,7 @@ clasp deploy -i <DEPLOYMENT_ID> -V <VERSION_NUMBER>
 ---
 
 ### Legal & Documentation
+- **Google Workspace Marketplace:** [https://workspace.google.com/marketplace/app/limit_switch/1041132526220](https://workspace.google.com/marketplace/app/limit_switch/1041132526220)
 - **Home & Documentation:** [https://nschkurko.com/limit-switch/](https://nschkurko.com/limit-switch/)
 - **Privacy Policy:** [https://nschkurko.com/limit-switch/privacy.html](https://nschkurko.com/limit-switch/privacy.html) (Local: [docs/Privacy_policy.md](docs/Privacy_policy.md))
 - **Terms of Service:** [https://nschkurko.com/limit-switch/terms.html](https://nschkurko.com/limit-switch/terms.html) (Local: [docs/Terms_of_service.md](docs/Terms_of_service.md))
