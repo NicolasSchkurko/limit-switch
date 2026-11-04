@@ -3,17 +3,32 @@
  * @param {object} e The onOpen event object.
  */
 function onOpen(e) {
-  if (e && e.authMode === ScriptApp.AuthMode.NONE) {
+  var ui;
+  try {
+    ui = FormApp.getUi();
+  } catch (err) {
+    console.error('Limit-Switch onOpen UI error: ' + err.toString());
     return;
   }
+
+  // Keep both registrations: some add-on installs expose only the add-on menu,
+  // while test/container deployments expose the custom menu.
   try {
-    FormApp.getUi()
-      .createAddonMenu()
+    ui.createMenu('Limit-Switch')
       .addItem('Configure Limiter', 'showLimitDialog')
       .addToUi();
   } catch (err) {
-    console.error('Limit-Switch onOpen error: ' + err.toString());
+    console.error('Limit-Switch custom menu error: ' + err.toString());
   }
+
+  try {
+    ui.createAddonMenu()
+      .addItem('Configure Limiter', 'showLimitDialog')
+      .addToUi();
+  } catch (err) {
+    console.error('Limit-Switch add-on menu error: ' + err.toString());
+  }
+
   syncActiveFormIfLimited();
 }
 
