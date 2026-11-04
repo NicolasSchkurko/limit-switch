@@ -34,6 +34,7 @@ function setup(options = {}) {
   const legacy = makeStore();
   const triggers = [];
   const logs = [];
+  const menuItems = [];
   const env = { docAvailable: true };
   const capture = (level) => (...args) => logs.push({ level, message: args.join(' ') });
 
@@ -71,11 +72,15 @@ function setup(options = {}) {
     },
     FormApp: {
       getActiveForm: () => form,
-      getUi: () => ({
-        createAddonMenu: () => ({
-          addItem: () => ({ addToUi: () => {} }),
-        }),
-      }),
+      getUi: () => {
+        const menu = {
+          addItem: (label) => {
+            menuItems.push(label);
+            return { addToUi: () => {} };
+          },
+        };
+        return { createAddonMenu: () => menu, createMenu: () => menu };
+      },
     },
     ScriptApp: {
       AuthMode: { NONE: 'NONE', LIMITED: 'LIMITED', FULL: 'FULL' },
@@ -102,7 +107,7 @@ function setup(options = {}) {
   vm.createContext(sandbox);
   vm.runInContext(code, sandbox);
 
-  return { ctx: sandbox, state, form, doc, user, legacy, triggers, env, logs };
+  return { ctx: sandbox, state, form, doc, user, legacy, triggers, menuItems, env, logs };
 }
 
 function userValue(app, key) {
@@ -266,6 +271,14 @@ test('reconciles near the quota so a lost trigger is not undercounted', () => {
 
   assert.equal(userValue(app, 'responseCount'), '3');
   assert.equal(app.state.accepting, false);
+});
+
+test('registers the menu even when AuthMode is NONE', () => {
+  const app = setup({ count: 0, accepting: true });
+
+  app.ctx.onOpen({ authMode: 'NONE' });
+
+  assert.ok(app.menuItems.includes('Configure Limiter'));
 });
 
 test('syncs and closes a limited form when the editor is opened', () => {
