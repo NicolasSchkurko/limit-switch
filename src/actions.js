@@ -112,8 +112,11 @@ function deleteStoredProperty(formId, key) {
  */
 function getLimitNumber(formId) {
   var val = getStoredProperty(formId, 'maxResponses');
-  var num = parseInt(val || '0', 10);
-  return isNaN(num) ? 0 : num;
+  if (val === null || val === undefined || String(val).trim() === '') {
+    return 0;
+  }
+  var num = Number(val);
+  return (Number.isInteger(num) && num > 0) ? num : 0;
 }
 
 /**

@@ -10,6 +10,7 @@ const SRC = path.join(__dirname, '..', 'src');
 const code = [
   fs.readFileSync(path.join(SRC, 'actions.js'), 'utf8'),
   fs.readFileSync(path.join(SRC, 'triggers.js'), 'utf8'),
+  fs.readFileSync(path.join(SRC, 'main.js'), 'utf8'),
 ].join('\n');
 
 function makeStore() {
@@ -68,7 +69,14 @@ function setup(options = {}) {
     LockService: {
       getUserLock: () => ({ waitLock: () => {}, releaseLock: () => {} }),
     },
-    FormApp: { getActiveForm: () => form },
+    FormApp: {
+      getActiveForm: () => form,
+      getUi: () => ({
+        createAddonMenu: () => ({
+          addItem: () => ({ addToUi: () => {} }),
+        }),
+      }),
+    },
     ScriptApp: {
       AuthMode: { NONE: 'NONE', LIMITED: 'LIMITED', FULL: 'FULL' },
       getProjectTriggers: () => triggers.slice(),
@@ -156,7 +164,7 @@ test('counts a duplicate trigger delivery only once', () => {
 
 test('does not scan all responses on the normal trigger path', () => {
   const app = setup({ count: 0, accepting: true });
-  app.ctx.setMaxResponses('5');
+  app.ctx.setMaxResponses('100');
   const before = app.state.getResponsesCalls;
 
   submit(app, 'R1');
@@ -234,4 +242,48 @@ test('rejects non-integer limits', () => {
 
   app.ctx.setMaxResponses('3abc');
   assert.equal(userValue(app, 'maxResponses'), null);
+});
+
+test('treats a corrupt stored limit as zero', () => {
+  const app = setup({ count: 2, accepting: true });
+  app.user.setProperty('FORM1_maxResponses', '3abc');
+  app.user.setProperty('FORM1_responseCount', '1');
+
+  assert.equal(app.ctx.getLimitNumber('FORM1'), 0);
+
+  submit(app, 'R1');
+
+  assert.equal(userValue(app, 'responseCount'), '1');
+  assert.equal(app.state.accepting, true);
+});
+
+test('reconciles near the quota so a lost trigger is not undercounted', () => {
+  const app = setup({ count: 3, accepting: true });
+  app.user.setProperty('FORM1_maxResponses', '3');
+  app.user.setProperty('FORM1_responseCount', '0');
+
+  submit(app, 'R1');
+
+  assert.equal(userValue(app, 'responseCount'), '3');
+  assert.equal(app.state.accepting, false);
+});
+
+test('syncs and closes a limited form when the editor is opened', () => {
+  const app = setup({ count: 5, accepting: true });
+  app.user.setProperty('FORM1_maxResponses', '5');
+  app.user.setProperty('FORM1_responseCount', '0');
+
+  app.ctx.onOpen({ authMode: 'FULL' });
+
+  assert.equal(userValue(app, 'responseCount'), '5');
+  assert.equal(app.state.accepting, false);
+});
+
+test('does not read responses on open when no limit is set', () => {
+  const app = setup({ count: 0, accepting: true });
+  const before = app.state.getResponsesCalls;
+
+  app.ctx.onOpen({ authMode: 'FULL' });
+
+  assert.equal(app.state.getResponsesCalls, before);
 });
