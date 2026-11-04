@@ -28,25 +28,6 @@ A lightweight, robust, and free Google Forms editor add-on that automatically st
 
 ---
 
-### Architecture & Technical Details
-
-#### Per-Form Storage & Isolation
-- **Primary Storage:** Configuration is stored directly inside the Google Form's container via `PropertiesService.getDocumentProperties()`.
-- **Trigger Execution Fallback:** Installable `onFormSubmit` triggers run in asynchronous execution contexts where the container document is unbound. For trigger runs, settings fallback to `PropertiesService.getUserProperties()` strictly keyed by the form ID (`<formId>_maxResponses` and `<formId>_responseCount`).
-- **Legacy Migration:** Limits saved by older versions in `PropertiesService.getScriptProperties()` are read once and copied to `UserProperties` the first time they are accessed.
-- Global and unscoped property access is strictly prevented, ensuring complete isolation across different forms and users.
-
-#### Form Lifecycle & Trigger Policies
-- **Reaching the Limit:** When a submission causes total responses to meet or exceed the quota, the background trigger executes `form.setAcceptingResponses(false)` and terminates further acceptance. Because `onFormSubmit` triggers run asynchronously, the quota is best-effort: submissions that land before the trigger runs are still accepted.
-- **Increasing the Quota:** If a form was closed by the limiter, setting a new, higher limit via `setMaxResponses()` reopens it (`form.setAcceptingResponses(true)`). Forms the owner closed manually are left closed. `Remove Limit` applies the same rule.
-- **Manual Sync Safety:** The `Sync` function recalibrates the response count directly with Google Forms. To preserve administrative intent and prevent race conditions with Google Forms replication latency, `Sync` will close a form that reached its quota, but **never automatically reopens a closed form**.
-
-#### Concurrency
-- All state transitions and trigger evaluations acquire an exclusive per-user lock via `LockService.getUserLock()` with a 30-second timeout, so tenants never block each other.
-- Background triggers calculate response counts using `Math.max(previousCount + 1, liveCount)` to account for Google Forms database replication lag during rapid concurrent submissions.
-
----
-
 ### Development & Deployment
 
 The source code is organized under `src/`:

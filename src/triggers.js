@@ -4,6 +4,12 @@
 var PROCESSED_RESPONSES_LIMIT = 20;
 
 /**
+ * Number of submissions before the quota at which the trigger reconciles with
+ * Google Forms, so the closing decision is based on the live count.
+ */
+var RECONCILE_MARGIN = 10;
+
+/**
  * Trigger handler executed automatically on every form submission.
  * Enforces response limit and closes the form when reached.
  * @param {object} e The onFormSubmit event object.
@@ -29,14 +35,16 @@ function checkResponseLimit(e) {
     if (responseId && wasResponseProcessed(formId, responseId)) return;
 
     var prevCount = parseInt(getStoredProperty(formId, 'responseCount') || '0', 10);
-    var totalCount;
+    var totalCount = prevCount + 1;
 
     if (form.isAcceptingResponses() && prevCount >= maxResponses) {
       // Counter drifted above the limit (for example, responses were deleted).
-      // Reconcile against Google Forms before counting this submission.
+      // Trust the live count so the form is not closed early.
       totalCount = form.getResponses().length;
-    } else {
-      totalCount = prevCount + 1;
+    } else if (totalCount >= maxResponses - RECONCILE_MARGIN) {
+      // Near the quota: reconcile with Google Forms so a lost trigger cannot
+      // leave the counter short when the closing decision is made.
+      totalCount = Math.max(totalCount, form.getResponses().length);
     }
 
     setStoredProperty(formId, 'responseCount', totalCount.toString());

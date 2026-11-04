@@ -14,6 +14,22 @@ function onOpen(e) {
   } catch (err) {
     console.error('Limit-Switch onOpen error: ' + err.toString());
   }
+  syncActiveFormIfLimited();
+}
+
+/**
+ * Recalibrates and enforces the quota when the form editor is opened.
+ * Runs without extra OAuth scopes because the form is the active container.
+ */
+function syncActiveFormIfLimited() {
+  try {
+    var form = FormApp.getActiveForm();
+    if (!form) return;
+    if (getLimitNumber(form.getId()) <= 0) return;
+    syncResponseCount();
+  } catch (err) {
+    console.error('Limit-Switch onOpen sync error: ' + err.toString());
+  }
 }
 
 /**
