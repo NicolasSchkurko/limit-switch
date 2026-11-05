@@ -2,6 +2,10 @@
 
 A lightweight, robust, and free Google Forms editor add-on that automatically stops accepting responses once a predefined response quota is reached. Once the limit is met, the form immediately switches to closed and displays a customizable message to visitors.
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/NicolasSchkurko/limit-switch/refs/heads/main/misc/limit-switch-demo-960-12.gif" alt="Limit-Switch demo" width="640"/>
+</p>
+
 ---
 
 ### Features
