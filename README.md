@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-# <img src="https://raw.githubusercontent.com/NicolasSchkurko/limit-switch/refs/heads/main/misc/logo.svg" alt="Limit-Switch logo" width="42"/> Limit-Switch
-=======
 # <img src="misc/logo.svg" alt="Limit-Switch logo" width="42"/> Limit-Switch
->>>>>>> develop
 
 <p align="center">
   <img src="misc/limit-switch-demo-960-12.gif" alt="Limit-Switch demo" width="640"/>
